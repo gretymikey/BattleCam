@@ -1,0 +1,5 @@
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+/Users/runner/work/BattleCam/BattleCam/Sources/TacAvatar.swift:291:21: error: cannot find 'TacOperator' in scope
+/Users/runner/work/BattleCam/BattleCam/Sources/TacBodycam.swift:25:8: error: invalid redeclaration of 'BodycamGrain'
+/Users/runner/work/BattleCam/BattleCam/Sources/TacBodycam.swift:80:36: error: argument passed to call that takes no arguments
+/Users/runner/work/BattleCam/BattleCam/Sources/Tactical.swift:2726:44: error: argument passed to call that takes no arguments
