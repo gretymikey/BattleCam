@@ -2259,11 +2259,17 @@ struct TacticalPlay: View {
             engine.theme = TacSeason.themes.firstIndex(of: sxd.map) ?? 0
             let gc = TacSeason.cos(sxd.gloves).rgb
             let mine = TacAvatar.style(TacAvatar.myKey)
+            let fpk = TacGear.fpColors(mine.look, skin: mine.skin)
+            TwViewModel.sleeveColor = fpk?.sleeve
+            TwViewModel.fingerColor = fpk?.fingers
             if sxd.gloves != "gl_black" {
                 TwViewModel.gloveColor = UIColor(red: gc.0, green: gc.1, blue: gc.2, alpha: 1)
+            } else if let f = fpk {
+                TwViewModel.gloveColor = f.glove
             } else {
                 TwViewModel.gloveColor = mine.gloves == 0 ? mine.skin : mine.gloveCol
             }
+            if fpk?.fingers != nil { TwViewModel.fingerColor = TwViewModel.gloveColor }
             engine.mapPick = nav.tacMap
             engine.setup(gun: nav.tacGun, diff: diff, mode: modeId)
             _ = TacRadar.image(0)

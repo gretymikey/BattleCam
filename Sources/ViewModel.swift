@@ -31,6 +31,11 @@ final class TwViewModel {
     private var lastGlove = UIColor.clear
     private var lastAtt = ""
     private var gloveMats: [MXMaterial] = []
+    private var sleeveMats: [MXMaterial] = []
+    private var lastSleeve = UIColor.clear
+    private var fingMats: [MXMaterial] = []
+    private var fingBase: [Any?] = []
+    private var lastFing: UIColor? = UIColor.clear
 
     static let viewOffDefault: (Float, Float, Float) = (-1.1, 0.6, -2.6)
     static let viewOff: [String: (Float, Float, Float)] = [
@@ -39,6 +44,10 @@ final class TwViewModel {
         "pump": (-1.2, 0.65, -3.0), "shotgun": (-1.2, 0.65, -3.0)
     ]
     static var gloveColor = UIColor(red: 0.165, green: 0.153, blue: 0.137, alpha: 1)
+    /// uniform colour of the first-person sleeves (nil keeps the model's own)
+    static var sleeveColor: UIColor? = nil
+    /// set when the gloves cover the fingers (nil = bare/fingerless: keep the skin texture)
+    static var fingerColor: UIColor? = nil
 
     init() {
         root.scale = MXVector3(k, k, k)
@@ -48,7 +57,10 @@ final class TwViewModel {
         defer { TwGunLib.vmMode = false }
         buildKnife()
         guard let rs = TwGunLib.rigs else { return }
-        defer { for m in gloveMats { m.diffuse.contents = TwViewModel.gloveColor } }
+        defer {
+            for m in gloveMats { m.diffuse.contents = TwViewModel.gloveColor }
+            if let sc = TwViewModel.sleeveColor { for m in sleeveMats { m.diffuse.contents = sc } }
+        }
         for (id, v) in rs {
             guard let rig = v as? [String: Any], let parts = rig["parts"] as? [[String: Any]] else { continue }
             if let g = TwGunLib.glbGun(id, arms: true, order: 1000) {
@@ -56,6 +68,8 @@ final class TwViewModel {
                 gun.isHidden = true
                 gun.addChildNode(g.node)
                 gloveMats += g.gloveMats
+                sleeveMats += g.sleeveMats
+                for m in g.fingMats where !fingMats.contains(where: { $0 === m }) { fingMats.append(m); fingBase.append(m.diffuse.contents) }
                 var fl: MXNode? = nil
                 if let mz = rig["muzzle"] as? [Double], mz.count == 3 {
                     let f = MuzzleFX.make()
@@ -184,6 +198,14 @@ final class TwViewModel {
             lastGlove = TwViewModel.gloveColor
             TwGunLib.vmMats["glove"]?.diffuse.contents = TwViewModel.gloveColor
             for m in gloveMats { m.diffuse.contents = TwViewModel.gloveColor }
+        }
+        if lastFing == nil || lastFing! != (TwViewModel.fingerColor ?? UIColor.clear) {
+            lastFing = TwViewModel.fingerColor ?? UIColor.clear
+            for (i, m) in fingMats.enumerated() { m.diffuse.contents = TwViewModel.fingerColor ?? fingBase[i] }
+        }
+        if let sc = TwViewModel.sleeveColor, sc != lastSleeve {
+            lastSleeve = sc
+            for m in sleeveMats { m.diffuse.contents = sc }
         }
         let attKey = gid + "|" + TAtt.viewSig(gid)
         if attKey != lastAtt {
@@ -322,7 +344,7 @@ enum TwGunLib {
     static var rigs: [String: Any]? = nil
 
     // MARK: Blender-built gun models (Resources/gun_<id>.glb + gunmeta.json)
-    struct GlbGun { let node: MXNode; let groups: [String: MXNode]; let dirs: [String: MXVector3]; let travel: Float; let gloveMats: [MXMaterial] }
+    struct GlbGun { let node: MXNode; let groups: [String: MXNode]; let dirs: [String: MXVector3]; let travel: Float; let gloveMats: [MXMaterial]; let sleeveMats: [MXMaterial]; let fingMats: [MXMaterial] }
     static let gmeta: [String: [String: Any]] = {
         guard let url = Bundle.main.url(forResource: "gunmeta", withExtension: "json") ?? Bundle.main.url(forResource: "gunmeta", withExtension: "json", subdirectory: "models"),
               let d = try? Data(contentsOf: url),
@@ -343,6 +365,8 @@ enum TwGunLib {
               let root = MXGLTF.load(url) else { return nil }
         var groups: [String: MXNode] = [:]
         var gloves: [MXMaterial] = []
+        var sleeves: [MXMaterial] = []
+        var fings: [MXMaterial] = []
         var paints: [MXMaterial] = []
         var metals: [MXMaterial] = []
         func isArm(_ n: MXNode) -> Bool {
@@ -358,6 +382,8 @@ enum TwGunLib {
             if n.geometry != nil {
                 n.renderingOrder = order
                 if arms, let nm = n.name, nm.hasSuffix("_glove"), let ms = n.geometry?.materials { gloves += ms }
+                if arms, let nm = n.name, nm.hasSuffix("_ARMS"), let ms = n.geometry?.materials { fings += ms }
+                if arms, let nm = n.name, nm.hasSuffix("_sleeve"), let ms = n.geometry?.materials { sleeves += ms }
                 if let nm = n.name, nm.hasSuffix("_QUATP"), let ms = n.geometry?.materials {
                     for m in ms where !paints.contains(where: { $0 === m }) { paints.append(m) }
                 } else if let nm = n.name, nm.hasSuffix("_QUAT"), let ms = n.geometry?.materials {
@@ -376,7 +402,7 @@ enum TwGunLib {
             for (k, a) in an where a.count == 3 { dirs[k] = MXVector3(Float(a[0]), Float(a[1]), Float(a[2])) }
         }
         let st = Float((meta["st"] as? Double) ?? 4)
-        return GlbGun(node: root, groups: groups, dirs: dirs, travel: st, gloveMats: gloves)
+        return GlbGun(node: root, groups: groups, dirs: dirs, travel: st, gloveMats: gloves, sleeveMats: sleeves, fingMats: fings)
     }
     private static var worldCache: [String: MXNode] = [:]
     private static var worldMuzzle: [String: Float] = [:]

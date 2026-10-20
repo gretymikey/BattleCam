@@ -18,8 +18,6 @@ struct CustomizeHome: View {
     private let cats: [(String, String)] = [("person.fill", "OPERATOR"), ("tshirt.fill", "UNIFORMS"), ("shield.fill", "HELMETS"), ("bag.fill", "BACKPACKS"),
                                              ("hand.raised.fill", "GLOVES"), ("shield.checkered", "PATCHES"), ("scope", "WEAPONS"), ("seal.fill", "CHARMS")]
     private let tabs = ["OPERATORS", "UNIFORMS", "HELMETS", "BACKPACKS"]
-    private let ops: [(String, Int, Int, Int, Int, Int)] = [("RANGER", 1, 2, 0, 0, 0), ("ASSAULT", 2, 0, 0, 5, 1), ("MEDIC", 6, 0, 0, 4, 1),
-                                                            ("SUPPORT", 5, 3, 0, 2, 2), ("RECON", 18, 0, 1, 1, 0), ("ENGINEER", 10, 3, 0, 3, 1)]
     // name, top, pants, vest, gloveCol
     private let skins: [(String, Int, Int, Int, Int)] = [("DEFAULT", 1, 3, 0, 4), ("WOODLAND", 4, 3, 5, 2), ("DESERT", 6, 7, 2, 3), ("URBAN", 1, 6, 6, 5), ("BLACK", 8, 4, 1, 4), ("SNOW", 7, 9, 6, 5)]
     private let topNames = ["Navy", "Slate", "Violet", "Blue", "Green", "Red", "Amber", "White", "Black", "Pink", "Cyan", "Lime"]
@@ -123,26 +121,65 @@ struct CustomizeHome: View {
         }
     }
 
+    private func kitArt(_ k: TacKit) -> some View {
+        ZStack {
+            Rectangle().fill(Color(uiColor: TacGear.c(k.uni)))
+            Rectangle().fill(Color(uiColor: TacGear.c(k.rigCol))).frame(height: 12).offset(y: 6)
+            Rectangle().fill(Color(uiColor: TacGear.c(k.accent))).frame(width: 14, height: 3).offset(y: -4)
+            SF("person.fill").font(.system(size: 17)).foregroundColor(.white.opacity(0.55))
+        }
+    }
+
+    private func gearCard(_ kind: Int, _ names: [String], _ cur: Int, _ pick: @escaping (Int) -> Void) -> some View {
+        LazyVGrid(columns: cols, spacing: 5) {
+            ForEach(0..<names.count, id: \.self) { i in
+                card(names[i], cur == i, { pick(i) }) {
+                    swatch(Color(white: 0.16)).overlay(SF(TacGear.icon(kind, i)).font(.system(size: 16)).foregroundColor(i == 0 ? .white.opacity(0.35) : .white.opacity(0.88)))
+                }
+            }
+        }
+    }
+
+    /// swap individual pieces on top of the chosen operator kit: face covering, helmet, chest rig, gloves, eyewear
+    @ViewBuilder private func gearRows() -> some View {
+        if let k = TacGear.resolve(look) {
+            head("FACE COVERING")
+            gearCard(1, TacGear.faceNames, k.face) { i in edit { $0.kFace = i } }
+            head("HELMET")
+            gearCard(0, TacGear.helmetNames, k.helmet) { i in edit { $0.kHelm = i } }
+            head("CHEST RIG")
+            gearCard(3, TacGear.rigNames, k.rig) { i in edit { $0.kRig = i } }
+            head("GLOVES (ALSO YOUR FIRST-PERSON HANDS)")
+            gearCard(4, TacGear.gloveNames, k.glv) { i in edit { $0.kGlove = i } }
+            head("EYEWEAR")
+            gearCard(2, TacGear.eyeNames, k.eyes) { i in edit { $0.kEyes = i } }
+        }
+    }
+
     @ViewBuilder private var panelBody: some View {
         switch cat {
         case 0:
             head("OPERATORS")
             LazyVGrid(columns: cols, spacing: 5) {
-                ForEach(0..<ops.count, id: \.self) { i in
-                    let o = ops[i]
-                    card(o.0, op == i, {
+                card("STANDARD", (look.kit ?? 0) == 0, {
+                    edit { $0.kit = 0; $0.kSkin = nil; $0.kHelm = nil; $0.kFace = nil; $0.kEyes = nil; $0.kRig = nil; $0.kGlove = nil }
+                }) { swatch(Color(white: 0.2)).overlay(SF("person.fill").font(.system(size: 18)).foregroundColor(.white.opacity(0.8))) }
+                ForEach(0..<TacGear.kits.count, id: \.self) { i in
+                    let k = TacGear.kits[i]
+                    card(k.name, (look.kit ?? 0) == i + 1, {
                         op = i; UserDefaults.standard.set(i, forKey: "ms.op")
-                        edit { $0.hat = o.1; $0.specs = o.2; $0.mask = o.3; $0.vestCol = o.4; $0.pack = o.5; $0.outfit = 14 }
-                    }) { face(variant { $0.hat = o.1; $0.specs = o.2; $0.mask = o.3 }) }
+                        edit { $0.kit = i + 1; $0.kSkin = nil; $0.kHelm = nil; $0.kFace = nil; $0.kEyes = nil; $0.kRig = nil; $0.kGlove = nil }
+                    }) { kitArt(k) }
                 }
             }
+            if (look.kit ?? 0) > 0 { gearRows() }
             head("SKINS")
             LazyVGrid(columns: cols, spacing: 5) {
                 ForEach(0..<skins.count, id: \.self) { i in
                     let s = skins[i]
                     card(s.0, skin == i, {
                         skin = i; UserDefaults.standard.set(i, forKey: "ms.skin")
-                        edit { $0.top = s.1; $0.pants = s.2; $0.vestCol = s.3; $0.packCol = s.3; $0.gloveCol = s.4 }
+                        edit { $0.top = s.1; $0.pants = s.2; $0.vestCol = s.3; $0.packCol = s.3; $0.gloveCol = s.4; $0.kSkin = i }
                     }) { face(variant { $0.top = s.1; $0.vestCol = s.3 }) }
                 }
             }

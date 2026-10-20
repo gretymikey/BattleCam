@@ -92,6 +92,7 @@ enum TacAvatar {
         pick(&l.vestCol, r.int(vestCols.count))
         pick(&l.pack, r.chance(40) ? 1 + r.int(2) : 0)
         pick(&l.packCol, r.int(vestCols.count))
+        pick(&l.kit, r.chance(88) ? 1 + r.int(TacGear.kits.count) : 0)
         if fresh {
             let hats = [1, 2, 6, 18, 19, 5, 10, 13, 20, 15]
             l.hat = r.chance(45) ? hats[r.int(hats.count)] : 0
@@ -121,7 +122,9 @@ enum TacAvatar {
         func idx(_ v: Int?, _ n: Int) -> Int { max(0, min(n - 1, v ?? 0)) }
         var s = TwStyle()
         s.key = key
-        s.look = l
+        var l2 = l
+        if (l.kit ?? 0) > 0 { l2.mask = 0; l2.specs = 0; l2.hat = 0 }   // the kit draws those in 3D
+        s.look = l2
         s.skin = ui(PortraitAvatar.skins[idx(l.skin, 8)])
         s.top = ui(PortraitAvatar.tops[idx(l.top, 12)])
         s.pants = ui(pantsCols[idx(l.pants, pantsCols.count)])

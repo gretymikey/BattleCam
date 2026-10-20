@@ -56,6 +56,14 @@ struct AvatarLook: Codable, Equatable {
     var vestCol: Int? = nil     // armor colour
     var pack: Int? = nil        // 0 none, 1 small, 2 large
     var packCol: Int? = nil
+    // operator kit (TacGear): 0/nil = classic outfit, 1... = kit; slot overrides are nil until the player swaps a piece
+    var kit: Int? = nil
+    var kSkin: Int? = nil
+    var kHelm: Int? = nil
+    var kFace: Int? = nil
+    var kEyes: Int? = nil
+    var kRig: Int? = nil
+    var kGlove: Int? = nil
 }
 
 extension AvatarLook {

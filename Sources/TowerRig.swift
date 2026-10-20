@@ -267,15 +267,16 @@ enum TwRig {
         let skin = st.skin
 
         // ---- clothing colours
-        let pantsCol: UIColor = admin ? col(0.07, 0.07, 0.09) : (staff ? col(0.1, 0.13, 0.22) : st.pants)
-        let top: UIColor = admin ? col(0.08, 0.08, 0.1) : (staff ? col(0.08, 0.45, 0.5) : st.top)
-        let tank = !admin && !staff && st.outfit == 7
-        let combat = !admin && !staff && st.outfit == 14
+        let kit: TacKit? = (admin || staff) ? nil : TacGear.resolve(st.look)
+        let pantsCol: UIColor = admin ? col(0.07, 0.07, 0.09) : (staff ? col(0.1, 0.13, 0.22) : (kit != nil ? TacGear.c(kit!.pants) : st.pants))
+        let top: UIColor = admin ? col(0.08, 0.08, 0.1) : (staff ? col(0.08, 0.45, 0.5) : (kit != nil ? TacGear.c(kit!.uni) : st.top))
+        let tank = kit == nil && !admin && !staff && st.outfit == 7
+        let combat = kit != nil ? kit!.camo : (!admin && !staff && st.outfit == 14)
         let sleeveM: MXMaterial = tank ? mat(skin) : (combat ? camoMat(top, "uni\(top.hashValue)") : mat(top))
         let vestC = st.vest
         let plateC = col(0.22, 0.23, 0.2)
-        let bootC: UIColor = admin ? col(0.04, 0.04, 0.05) : st.shoes
-        let shorts = !admin && !staff && st.pantsStyle == 3
+        let bootC: UIColor = admin ? col(0.04, 0.04, 0.05) : (kit != nil ? TacGear.c(kit!.boots) : st.shoes)
+        let shorts = kit == nil && !admin && !staff && st.pantsStyle == 3
 
         let dy: CGFloat = 6.5
         let bodyGrp = MXNode()
@@ -299,7 +300,8 @@ enum TwRig {
             hip.addChildNode(at(ball(3.4, pantsCol), 0, 0, 0))
             hip.addChildNode(at(ball(2.8, shorts ? skin : pantsCol), 0.5, -10.8, 0))
             hip.addChildNode(limb((0.5, -10.8, 0), (0, -20.2, 0), 2.7, shorts ? 2.1 : 2.3, shorts ? skinM : pantM))
-            if !shorts && !admin && !staff {
+            if let k = kit { TacGear.dressLeg(k, hip: hip, index: legs.count) }
+            if kit == nil && !shorts && !admin && !staff {
                 if st.pantsStyle == 0 {
                     hip.addChildNode(at(box(1.4, 4.2, 3.0, pantsCol), 3.0, -6.5, 0))
                 } else if st.pantsStyle == 2 {
@@ -345,7 +347,7 @@ enum TwRig {
         // trapezius + neck
         body(2.6, 1.4, 4.4, 30.8, -0.2)
         bodyGrp.addChildNode(at(box(5.2, 1.0, 12.6 * bw, admin ? col(0.04, 0.04, 0.05) : col(0.12, 0.11, 0.09)), 0, 18.6, 0))   // belt
-        let turtle = !admin && !staff && st.outfit == 3
+        let turtle = kit == nil && !admin && !staff && st.outfit == 3
         bodyGrp.addChildNode(at(cyl(turtle ? 3.0 : 2.3, 4.5, turtle ? top : skin), 0.3, 33.4, 0))
 
         // ---- clothing details (scaled with the build)
@@ -370,6 +372,8 @@ enum TwRig {
             roleN.addChildNode(at(box(0.4, 5.6, 0.7, col(1, 1, 1)), 5.1, 26.2, 1.4))
             roleN.addChildNode(at(box(0.5, 2.8, 2.0, col(0.95, 0.95, 1)), 5.25, 22.6, 1.4))
             roleN.addChildNode(at(box(0.3, 0.8, 1.6, col(0.1, 0.55, 0.6)), 5.55, 23.4, 1.4))
+        } else if let k = kit {
+            TacGear.dressTorso(k, roleN: roleN, team: team)
         } else {
             switch st.outfit {
             case 1:   // hoodie
@@ -412,7 +416,7 @@ enum TwRig {
         }
 
         // ---- backpack
-        if !admin && !staff && st.pack > 0 {
+        if kit == nil && !admin && !staff && st.pack > 0 {
             if st.pack == 1 {
                 roleN.addChildNode(at(box(3.2, 7, 8, st.packCol), -6.0, 25.5, 0))
             } else {
@@ -472,8 +476,13 @@ enum TwRig {
             hat.addChildNode(at(box(3.8, 0.5, 7.8, col(0.08, 0.1, 0.24)), 5.4, 37.6, 0))
             hat.addChildNode(at(box(0.4, 1.5, 1.7, col(1, 0.82, 0.25), glow: true), 5.0, 38.6, 0))
         } else {
-            hat.addChildNode(hair3D(st.hairStyle, st.hairCol))
-            if !admin && st.hat != 0 { hat.addChildNode(hat3D(st.hat, st.hatCol)) }
+            if let k = kit {
+                if k.helmet == 0 || k.helmet == 3 || k.helmet == 4 { hat.addChildNode(hair3D(st.hairStyle, st.hairCol)) }
+                TacGear.dressHead(k, head: headGrp, hat: hat, team: team)
+            } else {
+                hat.addChildNode(hair3D(st.hairStyle, st.hairCol))
+                if !admin && st.hat != 0 { hat.addChildNode(hat3D(st.hat, st.hatCol)) }
+            }
         }
         headGrp.addChildNode(hat)
 
@@ -502,7 +511,9 @@ enum TwRig {
             root.addChildNode(limb(el, hd, 2.2, 1.7, sleeves))
         }
         for (hx, hy, hz) in [handR, handL] {
-            if admin {
+            if let k = kit {
+                TacGear.hand(k, skin: skin, at: (hx, hy, hz), into: root)
+            } else if admin {
                 root.addChildNode(at(ball(1.9, col(0.92, 0.92, 0.94)), hx, hy, hz))
             } else if st.gloves == 2 {
                 root.addChildNode(at(ball(2.1, st.gloveCol), hx, hy, hz))
@@ -531,7 +542,8 @@ enum TwRig {
         let face = MXNode()
         face.isHidden = true
         root.addChildNode(face)
-        root.scale = MXVector3(1.1, 1.1 * hs, 1.1)
+        let kb: Float = Float(kit?.bulk ?? 1), kt: Float = Float(kit?.tall ?? 1)
+        root.scale = MXVector3(1.1, 1.1 * hs * kt, 1.1 * kb)
         return TwSoldier(root: root, legL: legs[0], legR: legs[1], holder: holder, variants: variants, flash: fl, shirt: sm, face: face, faceMat: faceMat, kev: kev, helm: helm, heavy: heavy, hat: hat)
     }
 }
