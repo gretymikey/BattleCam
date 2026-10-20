@@ -857,7 +857,8 @@ final class TacScene {
         let wc = TMap.walls.count
         for (i, pr) in TMap.props.enumerated() {
             let f = TMap.floorOfX(pr.r.midX)
-            let nd = props.build(pr.k, pr.r)
+            // the same Blender models the map editor shows; the code-built prop is only a fallback
+            let nd = TileArt.prop(pr.k, pr.r) ?? props.build(pr.k, pr.r)
             if TMap.hp[wc + i] > 0 { floorRoot[f].addChildNode(nd); breakNodes[wc + i] = (nd, floorRoot[f]) }
             else { prG[f].addChildNode(nd) }
         }

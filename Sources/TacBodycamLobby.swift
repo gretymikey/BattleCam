@@ -6,17 +6,17 @@ struct BodycamBackdrop: View {
         Canvas { ctx, sz in
             let w = sz.width, h = sz.height
             ctx.fill(Path(CGRect(origin: .zero, size: sz)), with: .linearGradient(
-                Gradient(colors: [Color(red: 0.05, green: 0.07, blue: 0.11), Color(red: 0.16, green: 0.2, blue: 0.28), Color(red: 0.62, green: 0.42, blue: 0.3), Color(red: 0.95, green: 0.68, blue: 0.4)]),
+                Gradient(colors: [Color(red: 0.03, green: 0.035, blue: 0.045), Color(red: 0.1, green: 0.115, blue: 0.135), Color(red: 0.34, green: 0.3, blue: 0.27), Color(red: 0.7, green: 0.5, blue: 0.32)]),
                 startPoint: .zero, endPoint: CGPoint(x: 0, y: h * 0.58)))
             // sun glow
             ctx.fill(Path(ellipseIn: CGRect(x: w * 0.3, y: h * 0.1, width: w * 0.7, height: w * 0.7)), with: .radialGradient(
-                Gradient(colors: [Color(red: 1, green: 0.8, blue: 0.5).opacity(0.75), .clear]), center: CGPoint(x: w * 0.66, y: h * 0.5), startRadius: 0, endRadius: w * 0.32))
+                Gradient(colors: [Color(red: 0.95, green: 0.62, blue: 0.34).opacity(0.4), .clear]), center: CGPoint(x: w * 0.66, y: h * 0.5), startRadius: 0, endRadius: w * 0.32))
             // cloud bands
             for i in 0..<7 {
                 let y = h * (0.08 + 0.065 * CGFloat(i))
                 let x = w * (0.1 + 0.11 * CGFloat((i * 5) % 7))
                 ctx.fill(Path(ellipseIn: CGRect(x: x, y: y, width: w * 0.5, height: h * 0.035)), with: .color(Color.black.opacity(0.22)))
-                ctx.fill(Path(ellipseIn: CGRect(x: x + w * 0.1, y: y + h * 0.012, width: w * 0.4, height: h * 0.02)), with: .color(Color(red: 1, green: 0.7, blue: 0.45).opacity(0.14)))
+                ctx.fill(Path(ellipseIn: CGRect(x: x + w * 0.1, y: y + h * 0.012, width: w * 0.4, height: h * 0.02)), with: .color(Color(red: 0.9, green: 0.6, blue: 0.4).opacity(0.07)))
             }
             // mountains
             var m = Path()
@@ -24,7 +24,7 @@ struct BodycamBackdrop: View {
             let peaks: [(CGFloat, CGFloat)] = [(0.08, 0.52), (0.2, 0.46), (0.3, 0.55), (0.42, 0.44), (0.52, 0.5), (0.64, 0.41), (0.76, 0.5), (0.88, 0.45), (1.0, 0.54)]
             for p in peaks { m.addLine(to: CGPoint(x: w * p.0, y: h * p.1)) }
             m.addLine(to: CGPoint(x: w, y: h * 0.66)); m.addLine(to: CGPoint(x: 0, y: h * 0.66)); m.closeSubpath()
-            ctx.fill(m, with: .linearGradient(Gradient(colors: [Color(red: 0.2, green: 0.2, blue: 0.25), Color(red: 0.1, green: 0.1, blue: 0.14)]), startPoint: CGPoint(x: 0, y: h * 0.4), endPoint: CGPoint(x: 0, y: h * 0.66)))
+            ctx.fill(m, with: .linearGradient(Gradient(colors: [Color(red: 0.11, green: 0.115, blue: 0.13), Color(red: 0.05, green: 0.055, blue: 0.065)]), startPoint: CGPoint(x: 0, y: h * 0.4), endPoint: CGPoint(x: 0, y: h * 0.66)))
             // watchtower
             let tx = w * 0.84, tb = h * 0.7
             ctx.fill(Path(CGRect(x: tx, y: h * 0.2, width: w * 0.07, height: tb - h * 0.2)), with: .color(Color(red: 0.1, green: 0.11, blue: 0.14)))
@@ -40,22 +40,88 @@ struct BodycamBackdrop: View {
             ctx.fill(Path(CGRect(x: hx + 34 * hs, y: hy - 4 * hs, width: 3 * hs, height: 6 * hs)), with: .color(hc))
             // wet ground with a bright reflection streak
             ctx.fill(Path(CGRect(x: 0, y: h * 0.66, width: w, height: h * 0.34)), with: .linearGradient(
-                Gradient(colors: [Color(red: 0.32, green: 0.26, blue: 0.22), Color(red: 0.09, green: 0.09, blue: 0.11)]),
+                Gradient(colors: [Color(red: 0.19, green: 0.17, blue: 0.16), Color(red: 0.05, green: 0.05, blue: 0.06)]),
                 startPoint: CGPoint(x: 0, y: h * 0.66), endPoint: CGPoint(x: 0, y: h)))
             var streak = Path()
             streak.move(to: CGPoint(x: w * 0.6, y: h * 0.66)); streak.addLine(to: CGPoint(x: w * 0.72, y: h * 0.66))
             streak.addLine(to: CGPoint(x: w * 0.68, y: h)); streak.addLine(to: CGPoint(x: w * 0.4, y: h)); streak.closeSubpath()
-            ctx.fill(streak, with: .linearGradient(Gradient(colors: [Color(red: 1, green: 0.75, blue: 0.45).opacity(0.5), .clear]), startPoint: CGPoint(x: 0, y: h * 0.66), endPoint: CGPoint(x: 0, y: h)))
+            ctx.fill(streak, with: .linearGradient(Gradient(colors: [Color(red: 0.9, green: 0.62, blue: 0.38).opacity(0.28), .clear]), startPoint: CGPoint(x: 0, y: h * 0.66), endPoint: CGPoint(x: 0, y: h)))
             // cargo cases in the foreground
             for (x, y, cw, ch) in [(0.74, 0.8, 0.14, 0.14), (0.88, 0.74, 0.13, 0.2), (0.6, 0.9, 0.1, 0.1)] as [(CGFloat, CGFloat, CGFloat, CGFloat)] {
                 ctx.fill(Path(CGRect(x: w * x, y: h * y, width: w * cw, height: h * ch)), with: .color(Color(red: 0.07, green: 0.075, blue: 0.09)))
                 ctx.fill(Path(CGRect(x: w * x, y: h * y, width: w * cw, height: 2)), with: .color(Color.white.opacity(0.12)))
             }
         }
-        .overlay(LinearGradient(colors: [Color.black.opacity(0.78), Color.black.opacity(0.1), Color.black.opacity(0.35)], startPoint: .leading, endPoint: .trailing))
-        .overlay(LinearGradient(colors: [Color.black.opacity(0.55), .clear, Color.black.opacity(0.5)], startPoint: .top, endPoint: .bottom))
+        .saturation(0.55)
+        .overlay(LinearGradient(colors: [Color.black.opacity(0.82), Color.black.opacity(0.15), Color.black.opacity(0.4)], startPoint: .leading, endPoint: .trailing))
+        .overlay(LinearGradient(colors: [Color.black.opacity(0.6), .clear, Color.black.opacity(0.6)], startPoint: .top, endPoint: .bottom))
+        .overlay(BodycamGrain())
+        .overlay(BodycamOSD())
         .ignoresSafeArea()
     }
+}
+
+/// film grain + scanlines, drawn once (cheap) and flickered slightly
+struct BodycamGrain: View {
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.12)) { tl in
+            Canvas { ctx, sz in
+                var s = UInt64(truncatingIfNeeded: Int(tl.date.timeIntervalSinceReferenceDate * 8) % 5) &+ 17
+                func rnd() -> CGFloat { s = s &* 6364136223846793005 &+ 1442695040888963407; return CGFloat((s >> 40) & 1023) / 1023 }
+                for _ in 0..<420 {
+                    let x = rnd() * sz.width, y = rnd() * sz.height, a = 0.05 + rnd() * 0.08
+                    ctx.fill(Path(CGRect(x: x, y: y, width: 1.6, height: 1.6)), with: .color(Color.white.opacity(a)))
+                }
+                var y: CGFloat = 0
+                while y < sz.height { ctx.fill(Path(CGRect(x: 0, y: y, width: sz.width, height: 1)), with: .color(Color.black.opacity(0.16))); y += 3 }
+                ctx.fill(Path(CGRect(origin: .zero, size: sz)), with: .radialGradient(Gradient(colors: [.clear, Color.black.opacity(0.55)]), center: CGPoint(x: sz.width / 2, y: sz.height / 2), startRadius: sz.width * 0.25, endRadius: sz.width * 0.72))
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// bodycam on-screen display: camera id, live timestamp, battery
+struct BodycamOSD: View {
+    private static let f: DateFormatter = { let d = DateFormatter(); d.dateFormat = "yyyy-MM-dd  HH:mm:ss"; return d }()
+    var body: some View {
+        VStack {
+            Spacer()
+            HStack(spacing: 10) {
+                TimelineView(.periodic(from: .now, by: 1)) { tl in
+                    Text("CAM-01  \(Self.f.string(from: tl.date))").font(.system(size: 9, weight: .semibold, design: .monospaced)).foregroundColor(.white.opacity(0.55))
+                }
+                Spacer()
+                Text("BATTLECAM  //  AXON-STYLE FEED").font(.system(size: 8, weight: .semibold, design: .monospaced)).foregroundColor(.white.opacity(0.3))
+            }
+            .padding(.horizontal, 14).padding(.bottom, 4)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// thin corner brackets, the viewfinder look used on panels
+struct CornerBrackets: ViewModifier {
+    var col: Color = Color.white.opacity(0.55)
+    var len: CGFloat = 8
+    func body(content: Content) -> some View {
+        content.overlay(
+            GeometryReader { g in
+                Path { p in
+                    let w = g.size.width, h = g.size.height
+                    for (x, y, dx, dy) in [(0.0, 0.0, 1.0, 1.0), (w, 0.0, -1.0, 1.0), (0.0, h, 1.0, -1.0), (w, h, -1.0, -1.0)] as [(CGFloat, CGFloat, CGFloat, CGFloat)] {
+                        p.move(to: CGPoint(x: x + dx * len, y: y)); p.addLine(to: CGPoint(x: x, y: y)); p.addLine(to: CGPoint(x: x, y: y + dy * len))
+                    }
+                }
+                .stroke(col, lineWidth: 1.2)
+            }
+            .allowsHitTesting(false)
+        )
+    }
+}
+
+extension View {
+    func tacBrackets(_ col: Color = Color.white.opacity(0.55), len: CGFloat = 8) -> some View { modifier(CornerBrackets(col: col, len: len)) }
 }
 
 // MARK: - shell: top navigation around every lobby page
@@ -112,7 +178,7 @@ struct LobbyShell<Content: View>: View {
                 Button { act(.ranks) } label: {
                     HStack(spacing: 7) {
                         PortraitAvatar(key: TacAvatar.myKey, size: 30, look: TacAvatar.look(for: TacAvatar.myKey).faceCopy)
-                            .clipShape(RoundedRectangle(cornerRadius: 3)).overlay(RoundedRectangle(cornerRadius: 3).stroke(Color.white.opacity(0.4), lineWidth: 1))
+                            .clipShape(Rectangle()).overlay(Rectangle().stroke(Color.white.opacity(0.4), lineWidth: 1))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(TacProfile.name).font(.jk(10, .heavy)).foregroundColor(.white).lineLimit(1).frame(maxWidth: 70, alignment: .leading)
                             HStack(spacing: 4) {
@@ -167,8 +233,9 @@ struct LSPanel<C: View>: View {
             }
             content()
         }
-        .background(Color(red: 0.045, green: 0.055, blue: 0.075).opacity(0.9))
+        .background(Color(red: 0.05, green: 0.055, blue: 0.06).opacity(0.9))
         .overlay(Rectangle().stroke(LS.line, lineWidth: 1))
+        .tacBrackets()
     }
 }
 
@@ -285,7 +352,7 @@ struct LobbyHome: View {
                     }
                     Spacer(minLength: 0)
                     Text("BODY CAM").font(.jk(h * 0.27, .heavy)).foregroundColor(.white).lineLimit(1).minimumScaleFactor(0.6)
-                    Text("REAL FOOTAGE. REAL TACTICS.").font(.jk(9, .medium)).foregroundColor(.white.opacity(0.78)).lineLimit(1)
+                    Text("LIVE FEED  //  TACTICAL  //  NO RESPAWN").font(.jk(9, .medium)).foregroundColor(.white.opacity(0.78)).lineLimit(1)
                     HStack(spacing: 8) {
                         Label("5v5", systemImage: "person.3.fill")
                         Text("|").opacity(0.4)
@@ -299,7 +366,8 @@ struct LobbyHome: View {
                 SF("chevron.right").font(.system(size: 14, weight: .semibold)).foregroundColor(.white.opacity(0.9)).padding(10).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
             }
             .frame(height: h).clipped()
-            .overlay(Rectangle().stroke(on ? Color.white : LS.line, lineWidth: on ? 2 : 1))
+            .overlay(Rectangle().stroke(on ? Color.white : LS.line, lineWidth: on ? 1.5 : 1))
+            .tacBrackets(on ? LS.orange : Color.white.opacity(0.5))
             .overlay(alignment: .leading) { Rectangle().fill(on ? LS.orange : .clear).frame(width: 3) }
         }
         .buttonStyle(TuiPress())
@@ -319,7 +387,7 @@ struct LobbyHome: View {
             }
             Spacer(minLength: 0)
             Text("\(xp)").font(.jk(10, .medium)).foregroundColor(.white.opacity(0.85))
-            Text("XP").font(.jk(7, .heavy)).foregroundColor(.white.opacity(0.9)).padding(.horizontal, 4).padding(.vertical, 2).overlay(RoundedRectangle(cornerRadius: 3).stroke(Color.white.opacity(0.7), lineWidth: 1))
+            Text("XP").font(.jk(7, .heavy)).foregroundColor(.white.opacity(0.9)).padding(.horizontal, 4).padding(.vertical, 2).overlay(Rectangle().stroke(Color.white.opacity(0.7), lineWidth: 1))
         }
         .padding(.horizontal, 10).frame(height: rh)
     }
@@ -407,12 +475,14 @@ struct LobbyHome: View {
                 Button { act(.screen(2)) } label: {
                     HStack {
                         Spacer()
-                        Text("PLAY").font(.jk(20, .heavy)).foregroundColor(.white)
+                        Text("DEPLOY").font(.jk(20, .heavy)).foregroundColor(.black)
                         Spacer()
-                        SF("chevron.right").font(.system(size: 15, weight: .black)).foregroundColor(.white)
+                        SF("chevron.right").font(.system(size: 15, weight: .black)).foregroundColor(.black)
                     }
                     .padding(.horizontal, 14).frame(height: max(34, H * 0.11))
-                    .background(LinearGradient(colors: [LS.orange, LS.orange2], startPoint: .top, endPoint: .bottom))
+                    .background(LS.orange)
+                    .overlay(alignment: .leading) { Rectangle().fill(Color.black.opacity(0.4)).frame(width: 4) }
+                    .tacBrackets(Color.black.opacity(0.5), len: 7)
                 }
                 .buttonStyle(TuiPress())
             }

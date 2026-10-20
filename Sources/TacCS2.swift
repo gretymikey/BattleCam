@@ -123,7 +123,7 @@ struct CSLoadout: View {
     let ok: () -> Void
     let battle: () -> Void
 
-    private let cols: [(String, [String])] = [("MELEE", ["knife"]), ("PISTOL", ["pistol", "eagle"]), ("SMG", ["smg", "mp7", "p90"]), ("SHOTGUN", ["shotgun", "pump"]), ("RIFLE", ["rifle", "ak", "m4"]), ("SNIPER", ["awp"])]
+    private let cols: [(String, [String])] = [("MELEE", ["knife"]), ("PISTOL", ["pistol", "eagle", "pm"]), ("SMG", ["smg", "mp7", "p90"]), ("SHOTGUN", ["shotgun", "pump"]), ("RIFLE", ["rifle", "ak", "m4"]), ("SNIPER", ["awp"])]
 
     private func header(_ s: String) -> some View {
         Text(s).font(.jk(11, .heavy)).foregroundColor(.white).frame(maxWidth: .infinity).frame(height: 26).background(Color(red: 0.32, green: 0.33, blue: 0.37))
@@ -325,7 +325,7 @@ struct LeagueBadge: View {
             ZStack {
                 LeagueShield().fill(TacLeague.color(rating))
                 LeagueShield().stroke(Color.black.opacity(0.7), lineWidth: 1)
-                Text("\(i - 1)").font(.system(size: size * 0.5, weight: .heavy, design: .rounded)).foregroundColor(.black.opacity(0.8)).offset(y: -size * 0.05)
+                Text("\(i - 1)").font(.system(size: size * 0.5, weight: .heavy, design: .monospaced)).foregroundColor(.black.opacity(0.8)).offset(y: -size * 0.05)
             }
             .frame(width: size * 0.85, height: size)
         }

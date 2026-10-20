@@ -107,7 +107,7 @@ enum Map3DBuilder {
             g.addChildNode(slab(ts - 0.4, 4, ts - 0.4, cx, -2, cz, floorC))
             let f = d.fr[0]
             let r = CGRect(x: x0 + f.minX * ts, y: z0 + f.minY * ts, width: f.width * ts, height: f.height * ts)
-            g.addChildNode(props.build(d.pk, r))
+            g.addChildNode(TileArt.prop(d.pk, r) ?? props.build(d.pk, r))
         case .spawn, .spawnA, .spawnD:
             g.addChildNode(slab(ts - 0.4, 4, ts - 0.4, cx, -2, cz, floorC))
             let disc = TwRig.cyl(25, 1.4, c0)
@@ -347,5 +347,55 @@ struct AssetView3D: UIViewRepresentable {
         let d = TWorkshop.tile(tileId)
         // centred on the origin so it turns on the spot
         co.holder.addChildNode(Map3DBuilder.node(d, x0: -ts / 2, z0: -ts / 2, props: co.props))
+    }
+}
+
+// MARK: - Blender-made art: prop models and asset icons
+
+enum TileArt {
+    private static var icons: [String: UIImage?] = [:]
+    private static var models: [String: MXNode?] = [:]
+
+    static func slug(_ n: String) -> String {
+        var out = ""
+        var dash = false
+        for ch in n.lowercased() {
+            if ch.isLetter || ch.isNumber { if dash && !out.isEmpty { out += "_" }; out.append(ch); dash = false } else { dash = true }
+        }
+        return out
+    }
+
+    /// Blender-rendered icon for a tile (nil if the file isn't in the bundle)
+    static func icon(_ name: String) -> UIImage? {
+        let k = slug(name)
+        if let c = icons[k] { return c }
+        var img: UIImage? = nil
+        if let u = Bundle.main.url(forResource: "ic_" + k, withExtension: "png") { img = UIImage(contentsOfFile: u.path) }
+        icons[k] = img
+        return img
+    }
+
+    private static let fileOf: [PropKind: (String, CGFloat)] = [
+        .crate: ("crate", 70), .barrel: ("barrel", 36), .sandbag: ("sandbag", 75), .car: ("car", 75), .table: ("table", 65), .shelf: ("shelf", 75),
+        .counter: ("counter", 75), .couch: ("couch", 67), .bed: ("bed", 71), .tv: ("tv", 37), .plant: ("plant", 30), .tree: ("tree", 60), .rock: ("rock", 45)
+    ]
+
+    /// the Blender model of a prop sized and turned to fill `r` (plan units); nil falls back to the code-built prop
+    static func prop(_ k: PropKind, _ r: CGRect) -> MXNode? {
+        guard let (file, base) = fileOf[k] else { return nil }
+        var m = models[file] ?? nil
+        if m == nil && models[file] == nil {
+            m = MXModel.load("prop_" + file)
+            models[file] = m
+        }
+        guard let src = m else { return nil }
+        let wrap = MXNode()
+        let s = Float(max(r.width, r.height) / base)
+        let inner = src.clone()
+        inner.scale = MXVector3(s, s, s)
+        wrap.addChildNode(inner)
+        wrap.position = MXVector3(Float(r.midX), 0, Float(r.midY))
+        if r.height > r.width + 0.01 { wrap.eulerAngles = MXVector3(0, Float.pi / 2, 0) }
+        return wrap
     }
 }

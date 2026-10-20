@@ -64,6 +64,14 @@ struct AvatarLook: Codable, Equatable {
     var kEyes: Int? = nil
     var kRig: Int? = nil
     var kGlove: Int? = nil
+    // Special Task Force operator pieces (TacGear.stf*); nil = the kit's own preset
+    var sBody: Int? = nil       // uniform camo
+    var sGear: Int? = nil       // vest colour
+    var sVest: Bool? = nil      // vest on / off
+    var sHead: Int? = nil       // 0 bare head, 1 helmet, 2 helmet + NVG
+    var sHelmCol: Int? = nil
+    var sFace: Int? = nil
+    var sLens: Int? = nil       // 0 none, 1 smoke, 2 amber, 3 blue, 4 red
 }
 
 extension AvatarLook {

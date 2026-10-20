@@ -4,12 +4,12 @@ import ImageIO
 
 /// Shared look for the lobby, HUD and menus.
 enum TUI {
-    static let accent = Color(red: 1.0, green: 0.55, blue: 0.05)
+    static let accent = Color(red: 0.93, green: 0.5, blue: 0.1)
     static let blue = Color(red: 0.30, green: 0.62, blue: 1.0)
     static let orange = Color(red: 1.0, green: 0.62, blue: 0.18)
     static let gold = Color(red: 1.0, green: 0.80, blue: 0.25)
     static let red = Color(red: 1.0, green: 0.31, blue: 0.31)
-    static let green = Color(red: 0.42, green: 0.95, blue: 0.5)
+    static let green = Color(red: 0.45, green: 0.8, blue: 0.5)
     static let ink = Color(red: 0.05, green: 0.06, blue: 0.09)
 }
 
@@ -19,29 +19,21 @@ func SF(_ name: String, _ fallback: String = "circle.fill") -> Image {
 }
 
 extension View {
-    /// dark translucent card with a hairline edge
+    /// gunmetal bodycam panel: square, hairline edge, viewfinder corners (radius kept for call-site compatibility)
     func tuiGlass(_ radius: CGFloat = 12, fill: Double = 0.5) -> some View {
         self
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: radius, style: .continuous).fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.black.opacity(fill * 0.8))
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .fill(LinearGradient(colors: [Color.white.opacity(0.10), .clear], startPoint: .top, endPoint: .center))
-                }
-            )
-            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .stroke(LinearGradient(colors: [Color.white.opacity(0.34), Color.white.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1))
-            .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
+            .background(Rectangle().fill(Color(red: 0.05, green: 0.055, blue: 0.06).opacity(0.55 + fill * 0.4)))
+            .overlay(Rectangle().stroke(Color.white.opacity(0.16), lineWidth: 1))
+            .tacBrackets()
     }
 }
 
 struct TuiPress: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .animation(.easeOut(duration: 0.07), value: configuration.isPressed)
     }
 }
 

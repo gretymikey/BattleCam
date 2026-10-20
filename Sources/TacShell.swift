@@ -7,13 +7,13 @@ enum LobbyAct {
 
 /// shared look of the new lobby
 enum LS {
-    static let navy = Color(red: 0.035, green: 0.06, blue: 0.1)
-    static let panel = Color(red: 0.045, green: 0.075, blue: 0.125)
-    static let card = Color(red: 0.075, green: 0.115, blue: 0.18)
-    static let orange = Color(red: 1.0, green: 0.55, blue: 0.05)
-    static let orange2 = Color(red: 0.95, green: 0.4, blue: 0.0)
-    static let green = Color(red: 0.2, green: 0.72, blue: 0.3)
-    static let line = Color.white.opacity(0.13)
+    static let navy = Color(red: 0.04, green: 0.045, blue: 0.05)
+    static let panel = Color(red: 0.065, green: 0.07, blue: 0.075)
+    static let card = Color(red: 0.105, green: 0.11, blue: 0.115)
+    static let orange = Color(red: 0.93, green: 0.5, blue: 0.1)
+    static let orange2 = Color(red: 0.8, green: 0.4, blue: 0.06)
+    static let green = Color(red: 0.36, green: 0.62, blue: 0.38)
+    static let line = Color.white.opacity(0.16)
     static let navW: CGFloat = 0
     static let topH: CGFloat = 50
 

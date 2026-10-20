@@ -25,6 +25,9 @@ struct TacKit {
     var bulk: CGFloat = 1    // body width multiplier (silhouette)
     var tall: CGFloat = 1
     var cross = false        // medic markings
+    // Special Task Force preset (what the Blender operator wears)
+    var sBody = 0, sGear = 0, sHelmCol = 0, sHead = 2, sFace = 0, sLens = 1
+    var sVest = true
 }
 
 enum TacGear {
@@ -33,24 +36,42 @@ enum TacGear {
     static let eyeNames = ["NONE", "GOGGLES", "GLASSES", "NVG"]
     static let rigNames = ["NONE", "PLATE CARRIER", "CHEST RIG", "HEAVY ARMOR", "MEDIC RIG"]
     static let gloveNames = ["BARE", "TACTICAL", "PADDED", "FINGERLESS"]
+    // Special Task Force operator options (index = texture variant in stf_*_<i>.jpg)
+    static let stfBodyNames = ["STANDARD", "DESERT", "WOODLAND", "URBAN", "ARCTIC", "NIGHT", "CRIMSON"]
+    static let stfGearNames = ["COYOTE", "OLIVE", "BLACK", "GREY", "NAVY"]
+    static let stfHeadNames = ["BARE HEAD", "HELMET", "HELMET + NVG"]
+    static let stfHelmColNames = ["COYOTE", "OLIVE", "BLACK", "GREY", "WHITE"]
+    static let stfFaceNames = ["STANDARD", "FAIR", "TAN", "DEEP", "WOODLAND PAINT", "NIGHT PAINT", "SCARRED"]
+    static let stfLensNames = ["NONE", "SMOKE", "AMBER", "BLUE", "RED"]
+    static let stfLens: [UInt32] = [0x000000, 0x08080A, 0x8C520D, 0x0D2666, 0x800D0A]
+    /// SKINS row -> (uniform, vest, helmet colour)
+    static let stfSkin: [(Int, Int, Int)] = [(0, 0, 0), (2, 1, 1), (1, 0, 0), (3, 3, 3), (5, 2, 2), (4, 3, 4)]
 
     static let kits: [TacKit] = [
         TacKit(name: "ASSAULT", uni: 0x4B5236, pants: 0x3E4630, boots: 0x1E1712, glove: 0x1A1A1A, rigCol: 0x3A3D32, accent: 0x1A1A1A, camo: true,
-               helmet: 1, face: 1, eyes: 1, rig: 1, glv: 1, pack: 1, headset: true, knee: true, holster: false, bulk: 1.0),
+               helmet: 1, face: 1, eyes: 1, rig: 1, glv: 1, pack: 1, headset: true, knee: true, holster: false, bulk: 1.0,
+               sBody: 0, sGear: 0, sHelmCol: 0, sHead: 2, sFace: 0, sLens: 1),
         TacKit(name: "BREACHER", uni: 0x1D1F22, pants: 0x17181A, boots: 0x0E0E10, glove: 0x111214, rigCol: 0x24262A, accent: 0x6B6F76, camo: false,
-               helmet: 2, face: 5, eyes: 0, rig: 3, glv: 2, pack: 0, headset: false, knee: true, holster: true, bulk: 1.14, tall: 1.02),
+               helmet: 2, face: 5, eyes: 0, rig: 3, glv: 2, pack: 0, headset: false, knee: true, holster: true, bulk: 1.14, tall: 1.02,
+               sBody: 5, sGear: 2, sHelmCol: 2, sHead: 1, sFace: 5, sLens: 1),
         TacKit(name: "RECON", uni: 0x56603C, pants: 0x4A5233, boots: 0x3A2E20, glove: 0x2A2A24, rigCol: 0x4A4F36, accent: 0x6B6246, camo: true,
-               helmet: 3, face: 2, eyes: 2, rig: 2, glv: 3, pack: 5, headset: false, knee: false, holster: false, bulk: 0.92),
+               helmet: 3, face: 2, eyes: 2, rig: 2, glv: 3, pack: 5, headset: false, knee: false, holster: false, bulk: 0.92,
+               sBody: 2, sGear: 1, sHelmCol: 1, sHead: 1, sFace: 4, sLens: 0),
         TacKit(name: "MARKSMAN", uni: 0x9C8A63, pants: 0x8A7B5A, boots: 0x8B6B3A, glove: 0x6B5B3E, rigCol: 0x7A6B4A, accent: 0xC9B98A, camo: true,
-               helmet: 4, face: 4, eyes: 2, rig: 2, glv: 3, pack: 4, headset: false, knee: true, holster: false, bulk: 0.95),
+               helmet: 4, face: 4, eyes: 2, rig: 2, glv: 3, pack: 4, headset: false, knee: true, holster: false, bulk: 0.95,
+               sBody: 1, sGear: 0, sHelmCol: 0, sHead: 1, sFace: 2, sLens: 2),
         TacKit(name: "MEDIC", uni: 0x3F4A3A, pants: 0x38402F, boots: 0x1E1712, glove: 0x1A1A1A, rigCol: 0x4A5A3A, accent: 0xB02A24, camo: false,
-               helmet: 1, face: 0, eyes: 2, rig: 4, glv: 1, pack: 3, headset: true, knee: true, holster: false, bulk: 1.02, cross: true),
+               helmet: 1, face: 0, eyes: 2, rig: 4, glv: 1, pack: 3, headset: true, knee: true, holster: false, bulk: 1.02, cross: true,
+               sBody: 4, sGear: 3, sHelmCol: 4, sHead: 1, sFace: 1, sLens: 0),
         TacKit(name: "SUPPORT", uni: 0x5A5640, pants: 0x4B4834, boots: 0x2A2118, glove: 0x2D2A22, rigCol: 0x4A4630, accent: 0x2A2A24, camo: true,
-               helmet: 1, face: 2, eyes: 0, rig: 1, glv: 2, pack: 2, headset: true, knee: true, holster: true, bulk: 1.18),
+               helmet: 1, face: 2, eyes: 0, rig: 1, glv: 2, pack: 2, headset: true, knee: true, holster: true, bulk: 1.18,
+               sBody: 0, sGear: 1, sHelmCol: 3, sHead: 1, sFace: 3, sLens: 0),
         TacKit(name: "SPECTRE", uni: 0x16171A, pants: 0x121315, boots: 0x0A0A0B, glove: 0x0E0E10, rigCol: 0x1E2024, accent: 0xE8E6DC, camo: false,
-               helmet: 6, face: 3, eyes: 3, rig: 2, glv: 1, pack: 0, headset: false, knee: false, holster: false, bulk: 0.9, tall: 1.03),
+               helmet: 6, face: 3, eyes: 3, rig: 2, glv: 1, pack: 0, headset: false, knee: false, holster: false, bulk: 0.9, tall: 1.03,
+               sBody: 5, sGear: 4, sHelmCol: 2, sHead: 2, sFace: 6, sLens: 4),
         TacKit(name: "URBAN", uni: 0x5D6168, pants: 0x3C3F45, boots: 0x1A1A1C, glove: 0x1A1A1A, rigCol: 0x2D3036, accent: 0xE8731A, camo: false,
-               helmet: 1, face: 1, eyes: 1, rig: 1, glv: 1, pack: 1, headset: false, knee: true, holster: true, bulk: 1.04)
+               helmet: 1, face: 1, eyes: 1, rig: 1, glv: 1, pack: 1, headset: false, knee: true, holster: true, bulk: 1.04,
+               sBody: 3, sGear: 3, sHelmCol: 3, sHead: 1, sFace: 1, sLens: 1)
     ]
 
     /// uniform / pants / rig / glove palettes the SKINS row recolours a kit with (index 0 keeps the kit's own colours)
@@ -63,15 +84,39 @@ enum TacGear {
         ("SNOW", 0xD8DADC, 0xC8CBCE, 0x9AA0A6, 0x8A8F94, false)
     ]
 
+    /// 1-based kit of a look; anything outside the list (the retired civilian outfit, never chosen) is the first operator
+    static func kitIndex(_ l: AvatarLook) -> Int {
+        let n = l.kit ?? 0
+        return (n >= 1 && n <= kits.count) ? n : 1
+    }
+
+    private static var swImgs: [String: UIImage?] = [:]
+    /// small texture crop for the customize cards ("stfsw_<kind>_<i>.png")
+    static func swatch(_ kind: String, _ i: Int) -> UIImage? {
+        let key = "stfsw_\(kind)_\(i)"
+        if let c = swImgs[key] { return c }
+        var img: UIImage? = nil
+        if let u = Bundle.main.url(forResource: key, withExtension: "png") { img = UIImage(contentsOfFile: u.path) }
+        swImgs[key] = img
+        return img
+    }
+
     /// The kit a look is wearing (nil = old civilian-style outfit), with the player's slot overrides applied.
     static func resolve(_ l: AvatarLook) -> TacKit? {
-        let n = l.kit ?? 0
-        guard n >= 1 && n <= kits.count else { return nil }
+        let n = kitIndex(l)
         var k = kits[n - 1]
         if let s = l.kSkin, s >= 1 && s < skins.count {
             let p = skins[s]
             k.uni = p.uni; k.pants = p.pants; k.rigCol = p.rig; k.glove = p.glove; k.camo = p.camo
+            if s < stfSkin.count { k.sBody = stfSkin[s].0; k.sGear = stfSkin[s].1; k.sHelmCol = stfSkin[s].2 }
         }
+        if let v = l.sBody { k.sBody = max(0, min(stfBodyNames.count - 1, v)) }
+        if let v = l.sGear { k.sGear = max(0, min(stfGearNames.count - 1, v)) }
+        if let v = l.sVest { k.sVest = v }
+        if let v = l.sHead { k.sHead = max(0, min(stfHeadNames.count - 1, v)) }
+        if let v = l.sHelmCol { k.sHelmCol = max(0, min(stfHelmColNames.count - 1, v)) }
+        if let v = l.sFace { k.sFace = max(0, min(stfFaceNames.count - 1, v)) }
+        if let v = l.sLens { k.sLens = max(0, min(stfLensNames.count - 1, v)) }
         if let v = l.kHelm { k.helmet = max(0, min(helmetNames.count - 1, v)) }
         if let v = l.kFace { k.face = max(0, min(faceNames.count - 1, v)) }
         if let v = l.kEyes { k.eyes = max(0, min(eyeNames.count - 1, v)) }
@@ -371,6 +416,17 @@ enum TacGear {
     }
 
     // MARK: lobby labels / thumbnails
+
+    private static var opImgs: [String: UIImage?] = [:]
+    /// Blender-rendered operator portrait ("op_<name>.png" bust, "opf_<name>.png" full body); nil if not bundled
+    static func opImage(_ name: String, full: Bool = false) -> UIImage? {
+        let key = (full ? "opf_" : "op_") + name.lowercased()
+        if let c = opImgs[key] { return c }
+        var img: UIImage? = nil
+        if let u = Bundle.main.url(forResource: key, withExtension: "png") { img = UIImage(contentsOfFile: u.path) }
+        opImgs[key] = img
+        return img
+    }
 
     static func icon(_ kind: Int, _ i: Int) -> String {
         switch kind {

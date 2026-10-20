@@ -523,11 +523,15 @@ struct MapEditorView: View {
         let on = tile == UInt8(i)
         return Button { tile = UInt8(i); vpTab = vpTab == 1 ? 1 : 0; tool = tool == 2 || tool == 3 || tool == 1 ? 0 : tool } label: {
             HStack(spacing: 5) {
-                Rectangle().fill(d.k == .floor ? TWorkshop.matColor(d.mat) : d.col).frame(width: 9, height: 9).overlay(Rectangle().stroke(Color.white.opacity(0.4), lineWidth: 0.5))
+                if let ic = TileArt.icon(d.name) {
+                    Image(uiImage: ic).resizable().scaledToFit().frame(width: 26, height: 26)
+                } else {
+                    Rectangle().fill(d.k == .floor ? TWorkshop.matColor(d.mat) : d.col).frame(width: 9, height: 9).overlay(Rectangle().stroke(Color.white.opacity(0.4), lineWidth: 0.5))
+                }
                 Text(d.name).font(.system(size: 10)).foregroundColor(on ? .white : ME.txt).lineLimit(1)
                 Spacer(minLength: 0)
             }
-            .padding(.leading, 18).padding(.trailing, 4).frame(height: 18)
+            .padding(.leading, 14).padding(.trailing, 4).frame(height: 28)
             .background(on ? ME.red : Color.clear)
         }
         .buttonStyle(.plain)
@@ -563,6 +567,9 @@ struct MapEditorView: View {
                                 Button { if open.contains(c) { open.remove(c) } else { open.insert(c) } } label: {
                                     HStack(spacing: 4) {
                                         SF(open.contains(c) || !search.isEmpty ? "arrowtriangle.down.fill" : "arrowtriangle.right.fill").font(.system(size: 7)).foregroundColor(ME.dim).frame(width: 10)
+                                        if let ic = TileArt.icon(["wood_floor", "water", "wood_bridge", "wall", "crate", "tree", "bomb_site_a"][min(c, 6)]) {
+                                            Image(uiImage: ic).resizable().scaledToFit().frame(width: 20, height: 20)
+                                        }
                                         Text(TWorkshop.catNames[c].capitalized).font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
                                         Text("\(ids.count)").font(.system(size: 8)).foregroundColor(ME.dim)
                                         Spacer(minLength: 0)
@@ -580,7 +587,10 @@ struct MapEditorView: View {
             }
             .padding(3).background(Color.black).overlay(Rectangle().stroke(Color.white.opacity(0.7), lineWidth: 1))
             let d = def(Int(tile))
-            Text("\(d.name) · \(TWorkshop.catNames[min(d.cat, TWorkshop.catNames.count - 1)].capitalized)").font(.system(size: 8)).foregroundColor(ME.dim).lineLimit(1)
+            HStack(spacing: 6) {
+                if let ic = TileArt.icon(d.name) { Image(uiImage: ic).resizable().scaledToFit().frame(width: 44, height: 44).background(Color.black).overlay(Rectangle().stroke(ME.line, lineWidth: 1)) }
+                Text("\(d.name) · \(TWorkshop.catNames[min(d.cat, TWorkshop.catNames.count - 1)].capitalized)").font(.system(size: 8)).foregroundColor(ME.dim).lineLimit(2)
+            }
             HStack(spacing: 4) {
                 btn("Preview", w: (w - 24) * 0.4) { vpTab = 1 }
                 btn("Add to layout", red: true, w: (w - 24) * 0.6) { addToLayout() }
@@ -895,6 +905,7 @@ struct MapEditorView: View {
             Text("Browse the asset tree, pick a tile, then paint it onto the layout. Select an object to move it by coordinates, rotate it, duplicate it or remove it. Save keeps the map on this device. Deploy starts a bot match on your layout.")
             Text("Place Attack and Defend spawns, Bomb Sites A and B and loot from the Special folder. Anything you leave out is filled in automatically so the map always plays.")
             Text("Export copies a share code you can paste into Bundle > Import from clipboard on another device.")
+            Text(TacCredits.text).font(.system(size: 9)).foregroundColor(ME.txt.opacity(0.7)).padding(.top, 8)
         }
         .font(.system(size: 11)).foregroundColor(ME.txt).padding(14).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).background(ME.bg)
     }

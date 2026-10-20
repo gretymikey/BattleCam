@@ -235,10 +235,10 @@ struct HudFrontline: View {
                     Rectangle().fill(TUI.blue).frame(width: 96 * CGFloat(r0) / k)
                 }
                 .frame(width: 96, height: 7)
-                Text("\(r0)").font(.system(size: 20, weight: .heavy, design: .rounded)).foregroundColor(TUI.blue).monospacedDigit()
-                Text(THud.clock(t)).font(.system(size: 18, weight: .heavy, design: .rounded)).foregroundColor(.white).monospacedDigit()
+                Text("\(r0)").font(.system(size: 20, weight: .heavy, design: .monospaced)).foregroundColor(TUI.blue).monospacedDigit()
+                Text(THud.clock(t)).font(.system(size: 18, weight: .heavy, design: .monospaced)).foregroundColor(.white).monospacedDigit()
                     .padding(.horizontal, 8).padding(.vertical, 2).background(Rectangle().fill(Color.black.opacity(0.55)))
-                Text("\(r1)").font(.system(size: 20, weight: .heavy, design: .rounded)).foregroundColor(TUI.red).monospacedDigit()
+                Text("\(r1)").font(.system(size: 20, weight: .heavy, design: .monospaced)).foregroundColor(TUI.red).monospacedDigit()
                 ZStack(alignment: .leading) {
                     Rectangle().fill(Color.white.opacity(0.18))
                     Rectangle().fill(TUI.red).frame(width: 96 * CGFloat(r1) / k)

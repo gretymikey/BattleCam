@@ -121,7 +121,24 @@ struct CustomizeHome: View {
         }
     }
 
+    private func opPortrait(_ name: String, _ tint: Color) -> some View {
+        ZStack {
+            LinearGradient(colors: [tint.opacity(0.55), Color(white: 0.1)], startPoint: .top, endPoint: .bottom)
+            if let im = TacGear.opImage(name) {
+                Image(uiImage: im).resizable().scaledToFill().scaleEffect(1.12, anchor: .top)
+            } else {
+                SF("person.fill").font(.system(size: 17)).foregroundColor(.white.opacity(0.55))
+            }
+        }
+        .clipped()
+    }
+
     private func kitArt(_ k: TacKit) -> some View {
+        if TacGear.opImage(k.name) != nil { return AnyView(opPortrait(k.name, Color(uiColor: TacGear.c(k.uni)))) }
+        return AnyView(kitArtFallback(k))
+    }
+
+    private func kitArtFallback(_ k: TacKit) -> some View {
         ZStack {
             Rectangle().fill(Color(uiColor: TacGear.c(k.uni)))
             Rectangle().fill(Color(uiColor: TacGear.c(k.rigCol))).frame(height: 12).offset(y: 6)
@@ -140,20 +157,65 @@ struct CustomizeHome: View {
         }
     }
 
-    /// swap individual pieces on top of the chosen operator kit: face covering, helmet, chest rig, gloves, eyewear
+    private func texArt(_ kind: String, _ i: Int) -> some View {
+        Group {
+            if let im = TacGear.swatch(kind, i) { Image(uiImage: im).resizable().scaledToFill() }
+            else { Rectangle().fill(Color(white: 0.2)) }
+        }
+    }
+
+    private func texGrid(_ kind: String, _ names: [String], _ cur: Int, _ pick: @escaping (Int) -> Void) -> some View {
+        LazyVGrid(columns: cols, spacing: 5) {
+            ForEach(0..<names.count, id: \.self) { i in
+                card(names[i], cur == i, { pick(i) }) { texArt(kind, i) }
+            }
+        }
+    }
+
+    /// swap individual pieces of the Special Task Force operator: face, headgear, helmet colour, eyewear, uniform, vest, gloves
     @ViewBuilder private func gearRows() -> some View {
         if let k = TacGear.resolve(look) {
-            head("FACE COVERING")
-            gearCard(1, TacGear.faceNames, k.face) { i in edit { $0.kFace = i } }
-            head("HELMET")
-            gearCard(0, TacGear.helmetNames, k.helmet) { i in edit { $0.kHelm = i } }
-            head("CHEST RIG")
-            gearCard(3, TacGear.rigNames, k.rig) { i in edit { $0.kRig = i } }
+            head("FACE")
+            texGrid("face", TacGear.stfFaceNames, k.sFace) { i in edit { $0.sFace = i } }
+            head("HEADGEAR")
+            gearCard(0, TacGear.stfHeadNames, k.sHead) { i in edit { $0.sHead = i } }
+            if k.sHead > 0 {
+                head("HELMET COLOR")
+                texGrid("helm", TacGear.stfHelmColNames, k.sHelmCol) { i in edit { $0.sHelmCol = i } }
+            }
+            head("EYEWEAR")
+            LazyVGrid(columns: cols, spacing: 5) {
+                ForEach(0..<TacGear.stfLensNames.count, id: \.self) { i in
+                    card(TacGear.stfLensNames[i], k.sLens == i, { edit { $0.sLens = i } }) {
+                        swatch(i == 0 ? Color(white: 0.16) : Color(uiColor: TacGear.c(TacGear.stfLens[i])).opacity(0.9))
+                            .overlay(SF(i == 0 ? "nosign" : "sunglasses.fill").font(.system(size: 16)).foregroundColor(.white.opacity(i == 0 ? 0.35 : 0.88)))
+                    }
+                }
+            }
+            head("UNIFORM")
+            texGrid("body", TacGear.stfBodyNames, k.sBody) { i in edit { $0.sBody = i } }
+            head("VEST")
+            LazyVGrid(columns: cols, spacing: 5) {
+                card("NO VEST", !k.sVest, { edit { $0.sVest = false } }) {
+                    swatch(Color(white: 0.16)).overlay(SF("nosign").font(.system(size: 16)).foregroundColor(.white.opacity(0.35)))
+                }
+                ForEach(0..<TacGear.stfGearNames.count, id: \.self) { i in
+                    card(TacGear.stfGearNames[i], k.sVest && k.sGear == i, { edit { $0.sVest = true; $0.sGear = i } }) { texArt("gear", i) }
+                }
+            }
             head("GLOVES (ALSO YOUR FIRST-PERSON HANDS)")
             gearCard(4, TacGear.gloveNames, k.glv) { i in edit { $0.kGlove = i } }
-            head("EYEWEAR")
-            gearCard(2, TacGear.eyeNames, k.eyes) { i in edit { $0.kEyes = i } }
         }
+    }
+
+    /// an operator card resets every piece back to that operator's own preset
+    private func pickKit(_ i: Int) {
+        op = i; UserDefaults.standard.set(i, forKey: "ms.op")
+        edit {
+            $0.kit = i + 1; $0.kSkin = nil; $0.kHelm = nil; $0.kFace = nil; $0.kEyes = nil; $0.kRig = nil; $0.kGlove = nil
+            $0.sBody = nil; $0.sGear = nil; $0.sVest = nil; $0.sHead = nil; $0.sHelmCol = nil; $0.sFace = nil; $0.sLens = nil
+        }
+        skin = 0; UserDefaults.standard.set(0, forKey: "ms.skin")
     }
 
     @ViewBuilder private var panelBody: some View {
@@ -161,32 +223,27 @@ struct CustomizeHome: View {
         case 0:
             head("OPERATORS")
             LazyVGrid(columns: cols, spacing: 5) {
-                card("STANDARD", (look.kit ?? 0) == 0, {
-                    edit { $0.kit = 0; $0.kSkin = nil; $0.kHelm = nil; $0.kFace = nil; $0.kEyes = nil; $0.kRig = nil; $0.kGlove = nil }
-                }) { swatch(Color(white: 0.2)).overlay(SF("person.fill").font(.system(size: 18)).foregroundColor(.white.opacity(0.8))) }
                 ForEach(0..<TacGear.kits.count, id: \.self) { i in
                     let k = TacGear.kits[i]
-                    card(k.name, (look.kit ?? 0) == i + 1, {
-                        op = i; UserDefaults.standard.set(i, forKey: "ms.op")
-                        edit { $0.kit = i + 1; $0.kSkin = nil; $0.kHelm = nil; $0.kFace = nil; $0.kEyes = nil; $0.kRig = nil; $0.kGlove = nil }
-                    }) { kitArt(k) }
+                    card(k.name, TacGear.kitIndex(look) == i + 1, { pickKit(i) }) { kitArt(k) }
                 }
             }
-            if (look.kit ?? 0) > 0 { gearRows() }
-            head("SKINS")
+            gearRows()
+            head("SKINS (UNIFORM + VEST + HELMET SETS)")
             LazyVGrid(columns: cols, spacing: 5) {
                 ForEach(0..<skins.count, id: \.self) { i in
                     let s = skins[i]
                     card(s.0, skin == i, {
                         skin = i; UserDefaults.standard.set(i, forKey: "ms.skin")
-                        edit { $0.top = s.1; $0.pants = s.2; $0.vestCol = s.3; $0.packCol = s.3; $0.gloveCol = s.4; $0.kSkin = i }
-                    }) { face(variant { $0.top = s.1; $0.vestCol = s.3 }) }
+                        edit {
+                            $0.top = s.1; $0.pants = s.2; $0.vestCol = s.3; $0.packCol = s.3; $0.gloveCol = s.4; $0.kSkin = i
+                            $0.sBody = nil; $0.sGear = nil; $0.sVest = nil; $0.sHelmCol = nil
+                        }
+                    }) { texArt("body", i < TacGear.stfSkin.count ? TacGear.stfSkin[i].0 : 0) }
                 }
             }
-            head("PATTERNS")
+            head("WEAPON CAMO")
             camoGrid()
-            head("COLOR")
-            colorRow()
         case 1:
             head("TOPS")
             palette(PortraitAvatar.tops, look.top ?? 0) { i in edit { $0.top = i } }

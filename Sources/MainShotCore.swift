@@ -140,17 +140,17 @@ func brRayThrough(_ o: CGPoint, _ dx: CGFloat, _ dy: CGFloat, _ r: CGRect) -> (C
 }
 
 extension Font {
-    /// Plus Jakarta Sans, the typeface used across the app.
+    /// Tactical UI face: Avenir Next Condensed (ships with iOS) - tight, military, all-caps friendly.
     static func jk(_ size: CGFloat, _ w: Font.Weight = .regular) -> Font {
         let n: String
         switch w {
-        case .medium: n = "PlusJakartaSans-Medium"
-        case .semibold: n = "PlusJakartaSans-SemiBold"
-        case .bold: n = "PlusJakartaSans-Bold"
-        case .heavy, .black: n = "PlusJakartaSans-ExtraBold"
-        default: n = "PlusJakartaSans-Regular"
+        case .medium: n = "AvenirNextCondensed-Medium"
+        case .semibold: n = "AvenirNextCondensed-DemiBold"
+        case .bold: n = "AvenirNextCondensed-Bold"
+        case .heavy, .black: n = "AvenirNextCondensed-Heavy"
+        default: n = "AvenirNextCondensed-Regular"
         }
-        return .custom(n, size: size)
+        return .custom(n, size: size * 1.08)
     }
 }
 

@@ -3,13 +3,13 @@ import UIKit
 
 /// Critical-Strike-style building blocks: flat dark panels, bold blue/orange buttons, top-left vitals, score bar.
 enum CS {
-    static let blue = Color(red: 0.12, green: 0.42, blue: 0.95)
-    static let blueDark = Color(red: 0.05, green: 0.2, blue: 0.62)
-    static let orange = Color(red: 1.0, green: 0.62, blue: 0.0)
-    static let orangeDark = Color(red: 0.95, green: 0.4, blue: 0.0)
+    static let blue = Color(red: 0.2, green: 0.23, blue: 0.27)
+    static let blueDark = Color(red: 0.1, green: 0.115, blue: 0.14)
+    static let orange = Color(red: 0.93, green: 0.5, blue: 0.1)
+    static let orangeDark = Color(red: 0.78, green: 0.38, blue: 0.05)
     static let panel = Color(red: 0.04, green: 0.05, blue: 0.07)
     static let cash = Color(red: 0.42, green: 0.9, blue: 0.62)
-    static let gold = Color(red: 1.0, green: 0.78, blue: 0.2)
+    static let gold = Color(red: 0.9, green: 0.72, blue: 0.3)
     static let modeCols: [Color] = [
         Color(red: 0.95, green: 0.7, blue: 0.1), Color(red: 0.2, green: 0.5, blue: 1), Color(red: 0.7, green: 0.3, blue: 1),
         Color(red: 0.2, green: 0.85, blue: 0.4), Color(red: 1, green: 0.25, blue: 0.25), Color(red: 0.2, green: 0.85, blue: 0.9), Color(red: 0.55, green: 0.9, blue: 0.2), Color(red: 0.25, green: 0.6, blue: 1)
@@ -31,11 +31,13 @@ struct CSButton: View {
     let act: () -> Void
 
     var body: some View {
-        Button(action: act) {
-            Text(title).font(.jk(size, .heavy)).foregroundColor(.white).shadow(color: .black.opacity(0.4), radius: 0, y: 1)
+        let primary = col == CS.orange
+        return Button(action: act) {
+            Text(title).font(.jk(size, .heavy)).foregroundColor(primary ? .black : .white)
                 .frame(width: w, height: h)
-                .background(LinearGradient(colors: [col, dark], startPoint: .top, endPoint: .bottom))
-                .overlay(Rectangle().stroke(Color.white.opacity(0.55), lineWidth: 1))
+                .background(LinearGradient(colors: primary ? [col, dark] : [col, dark], startPoint: .top, endPoint: .bottom))
+                .overlay(Rectangle().stroke(primary ? Color.white.opacity(0.25) : Color.white.opacity(0.22), lineWidth: 1))
+                .overlay(alignment: .leading) { Rectangle().fill(primary ? Color.black.opacity(0.35) : CS.orange).frame(width: 3) }
                 .overlay(alignment: .topTrailing) {
                     if dot { Text("!").font(.jk(11, .heavy)).foregroundColor(.white).frame(width: 16, height: 16).background(Rectangle().fill(Color.red)).offset(x: 6, y: -6) }
                 }
@@ -67,8 +69,8 @@ struct CSCurrency: View {
 struct CSBackdrop: View {
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(red: 0.07, green: 0.13, blue: 0.22), Color(red: 0.03, green: 0.05, blue: 0.1)], startPoint: .top, endPoint: .bottom)
-            RadialGradient(colors: [Color(red: 0.18, green: 0.3, blue: 0.5).opacity(0.5), .clear], center: .center, startRadius: 10, endRadius: 420)
+            LinearGradient(colors: [Color(red: 0.09, green: 0.1, blue: 0.11), Color(red: 0.03, green: 0.035, blue: 0.04)], startPoint: .top, endPoint: .bottom)
+            RadialGradient(colors: [Color(red: 0.25, green: 0.28, blue: 0.3).opacity(0.4), .clear], center: .center, startRadius: 10, endRadius: 420)
         }
         .ignoresSafeArea()
     }
@@ -101,7 +103,7 @@ struct HudCSVitals: View {
     private func cell(_ icon: String, _ v: Int, _ f: CGFloat, _ col: Color) -> some View {
         HStack(spacing: 6) {
             SF(icon, "circle.fill").font(.system(size: 17, weight: .black)).foregroundColor(.white.opacity(0.85))
-            Text("\(v)").font(.system(size: 26, weight: .heavy, design: .rounded)).foregroundColor(col).monospacedDigit()
+            Text("\(v)").font(.system(size: 26, weight: .heavy, design: .monospaced)).foregroundColor(col).monospacedDigit()
             Rectangle().fill(Color.white.opacity(0.22)).frame(width: 44, height: 4)
                 .overlay(alignment: .leading) { Rectangle().fill(Color.white).frame(width: 44 * max(0, min(1, f)), height: 4) }
         }
@@ -115,9 +117,9 @@ struct HudCSVitals: View {
                 cell("cross.fill", hp, me.hp / 100, me.hp < 35 ? TUI.red : .white)
                 cell("shield.fill", ar, me.armor / 100, .white)
             }
-            Text("KILLS \(me.kills)").font(.system(size: 13, weight: .heavy, design: .rounded)).foregroundColor(.white.opacity(0.9))
+            Text("KILLS \(me.kills)").font(.system(size: 13, weight: .heavy, design: .monospaced)).foregroundColor(.white.opacity(0.9))
             if e.gameMode == 0 {
-                Text("$\(me.money)").font(.system(size: 14, weight: .heavy, design: .rounded)).foregroundColor(TUI.green)
+                Text("$\(me.money)").font(.system(size: 14, weight: .heavy, design: .monospaced)).foregroundColor(TUI.green)
             }
         }
         .shadow(color: .black.opacity(0.75), radius: 3, y: 1)
@@ -134,7 +136,7 @@ struct HudCSScore: View {
     }
 
     private func num(_ v: Int, _ col: Color) -> some View {
-        Text("\(v)").font(.system(size: 22, weight: .heavy, design: .rounded)).foregroundColor(col).monospacedDigit().frame(minWidth: 26)
+        Text("\(v)").font(.system(size: 22, weight: .heavy, design: .monospaced)).foregroundColor(col).monospacedDigit().frame(minWidth: 26)
     }
 
     var body: some View {
@@ -145,7 +147,7 @@ struct HudCSScore: View {
                 num(e.scores[0], TUI.blue)
                 badge(TUI.blue, "shield.lefthalf.filled")
                 Text(THud.clock(t))
-                    .font(.system(size: 26, weight: .heavy, design: .rounded)).foregroundColor(e.planted ? TUI.red : .white).monospacedDigit()
+                    .font(.system(size: 26, weight: .heavy, design: .monospaced)).foregroundColor(e.planted ? TUI.red : .white).monospacedDigit()
                     .frame(minWidth: 70)
                 badge(CS.orange, "star.fill")
                 num(e.rivalScore, CS.orange)
@@ -175,7 +177,7 @@ struct HudCSWeapon: View {
                     Text("RELOADING").font(.jk(15, .heavy)).foregroundColor(TUI.gold)
                 } else {
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
-                        Text("\(me.mag)").font(.system(size: 28, weight: .heavy, design: .rounded)).foregroundColor(me.mag == 0 ? TUI.red : .white).monospacedDigit()
+                        Text("\(me.mag)").font(.system(size: 28, weight: .heavy, design: .monospaced)).foregroundColor(me.mag == 0 ? TUI.red : .white).monospacedDigit()
                         if !pistol { Text("/ \(me.spare * g.mag)").font(.jk(14, .bold)).foregroundColor(.white.opacity(0.8)) }
                     }
                 }

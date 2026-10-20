@@ -482,7 +482,7 @@ struct HudRaidBar: View {
                 Rectangle().fill(Color.white.opacity(0.2)).frame(width: 1, height: 18)
                 HStack(spacing: 4) {
                     SF("bag.fill", "circle.fill").font(.system(size: 12, weight: .bold)).foregroundColor(TUI.accent)
-                    Text("\(e.raidBag.count)").font(.system(size: 16, weight: .heavy, design: .rounded)).monospacedDigit()
+                    Text("\(e.raidBag.count)").font(.system(size: 16, weight: .heavy, design: .monospaced)).monospacedDigit()
                     Text("$\(e.bagValue)").font(.jk(11, .heavy)).foregroundColor(TUI.green)
                 }
                 if e.raidHasKey {
@@ -491,7 +491,7 @@ struct HudRaidBar: View {
                 Rectangle().fill(Color.white.opacity(0.2)).frame(width: 1, height: 18)
                 HStack(spacing: 4) {
                     SF("scope", "circle.fill").font(.system(size: 12, weight: .bold)).foregroundColor(TUI.gold)
-                    Text("\(e.me.kills)").font(.system(size: 16, weight: .heavy, design: .rounded)).monospacedDigit()
+                    Text("\(e.me.kills)").font(.system(size: 16, weight: .heavy, design: .monospaced)).monospacedDigit()
                 }
             }
             .foregroundColor(.white).padding(.horizontal, 14).padding(.vertical, 6).hudFloat(18)

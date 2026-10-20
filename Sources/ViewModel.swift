@@ -39,7 +39,7 @@ final class TwViewModel {
 
     static let viewOffDefault: (Float, Float, Float) = (-1.1, 0.6, -2.6)
     static let viewOff: [String: (Float, Float, Float)] = [
-        "pistol": (-0.8, 0.45, -1.8), "eagle": (-0.8, 0.45, -1.8),
+        "pistol": (-0.8, 0.45, -1.8), "eagle": (-0.8, 0.45, -1.8), "pm": (-0.8, 0.45, -1.8),
         "m4": (-1.4, 0.8, -4.0), "rifle": (-1.3, 0.7, -3.4), "awp": (-1.3, 0.7, -3.4),
         "pump": (-1.2, 0.65, -3.0), "shotgun": (-1.2, 0.65, -3.0)
     ]
@@ -215,7 +215,7 @@ final class TwViewModel {
         }
         if gid == shown { return }
         shown = gid
-        let ks: Float = gid == "pistol" || gid == "eagle" ? 1 : (gid == "awp" ? 0.72 : (gid == "pump" || gid == "shotgun" || gid == "rifle" || gid == "ak" ? 0.76 : 0.85))
+        let ks: Float = gid == "pistol" || gid == "eagle" || gid == "pm" ? 1 : (gid == "awp" ? 0.72 : (gid == "pump" || gid == "shotgun" || gid == "rifle" || gid == "ak" ? 0.76 : 0.85))
         root.scale = MXVector3(k * ks, k * ks, k * ks)
         for (key, r) in rigs { r.node.isHidden = key != gid }
         slideK = 0; recoil = 0; cycleT = 2; cycleDelay = 0
@@ -319,8 +319,8 @@ final class TwViewModel {
             anchor = rot.act(SIMD3<Float>(Float(tp[0]), Float(tp[1]), Float(tp[2])) * root.scale.x)
             haveMeta = true
         }
-        let small = shown == "pistol" || shown == "eagle"
-        let hipAnchor: SIMD3<Float> = small ? SIMD3<Float>(0.7, -0.15, -3.6) : SIMD3<Float>(0.8, -0.4, -4.0)
+        let small = shown == "pistol" || shown == "eagle" || shown == "pm"
+        let hipAnchor: SIMD3<Float> = small ? SIMD3<Float>(0.8, -0.35, -4.1) : SIMD3<Float>(1.15, -1.0, -5.4)
         let vo = TwViewModel.viewOff[shown] ?? TwViewModel.viewOffDefault
         let hipBase: SIMD3<Float> = haveMeta ? hipAnchor - anchor : SIMD3<Float>(vo.0, vo.1, vo.2)
         var pos = SIMD3<Float>(bx + ix + dip * 1.2, by + iy - dip * 4.5, kick * 0.02 + recoil * 0.9 * recoilScale) + hipBase

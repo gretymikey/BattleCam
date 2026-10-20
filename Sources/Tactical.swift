@@ -737,11 +737,14 @@ final class TacticalEngine {
             p.aim = TMap.aimAtCenter(spot)
             p.respawn = 0
             if gameMode == 0 {
-                if round == 1 { p.money = 800; p.armor = 0; p.armorKind = 0; p.gun = "pistol" }
-                else if !survived { p.armor = 0; p.armorKind = 0; p.gun = "pistol" }
+                // the player always carries the loadout gun picked in the lobby (no buy phase)
+                if round == 1 { p.money = 800; p.armor = 0; p.armorKind = 0; p.gun = p.isPlayer ? myGun : "pistol" }
+                else if !survived { p.armor = 0; p.armorKind = 0; p.gun = p.isPlayer ? myGun : "pistol" }
                 p.mag = magSize(p, p.gun)
                 p.spare = TWeapons.isPistol(p.gun) ? 99 : 2
-                if p.isPlayer && round == 1 { p.altGun = "pistol"; p.altMag = 15; p.altSpare = 99 }
+                if p.isPlayer && (round == 1 || !survived) {
+                    p.altGun = TacticalEngine.altFor(p.gun); p.altMag = magSize(p, p.altGun); p.altSpare = 99
+                }
             } else {
                 p.gun = p.isPlayer ? myGun : gunPick()
                 if gameMode == 3 { p.gun = TWeapons.ladder[0]; p.ladder = 0 }
@@ -775,8 +778,8 @@ final class TacticalEngine {
             assignAmbush()
         } else {
             timer = 6
-            buyT = 16
-            buyOpen = me.alive
+            buyT = 0
+            buyOpen = false
             for p in players where !p.isPlayer { botBuy(p) }
         }
         bannerT = 3.5
@@ -2326,8 +2329,8 @@ struct TacticalPlay: View {
                 }
             }
             .padding(.horizontal, 9).frame(width: 150, height: 34)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.white.opacity(ok ? 0.14 : 0.05)))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(own ? TUI.green.opacity(0.6) : Color.white.opacity(0.08), lineWidth: 1))
+            .background(Rectangle().fill(Color.white.opacity(ok ? 0.12 : 0.04)))
+            .overlay(Rectangle().stroke(own ? TUI.green.opacity(0.6) : Color.white.opacity(0.16), lineWidth: 1))
         }
         .buttonStyle(TuiPress())
     }
@@ -2351,10 +2354,10 @@ struct TacticalPlay: View {
                             Text("\(Int(e.buyT))s").font(.jk(12, .bold)).foregroundColor(.white.opacity(0.6))
                             Spacer()
                             SF("dollarsign.circle.fill").font(.system(size: 16)).foregroundColor(TUI.green)
-                            Text("\(e.me.money)").font(.system(size: 20, weight: .heavy, design: .rounded)).foregroundColor(TUI.green)
+                            Text("\(e.me.money)").font(.system(size: 20, weight: .heavy, design: .monospaced)).foregroundColor(TUI.green)
                             Button { e.buyOpen = false } label: {
                                 SF("xmark").font(.system(size: 12, weight: .black)).foregroundColor(.white)
-                                    .frame(width: 30, height: 30).background(Circle().fill(Color.white.opacity(0.15)))
+                                    .frame(width: 30, height: 30).background(Rectangle().fill(Color.white.opacity(0.12))).overlay(Rectangle().stroke(Color.white.opacity(0.3), lineWidth: 1))
                             }
                             .buttonStyle(TuiPress())
                         }
@@ -2401,9 +2404,12 @@ struct TacticalPlay: View {
                 // fixed, always-visible movement stick (bottom-left)
                 let sb = CGPoint(x: 120, y: g.size.height - 112)
                 ZStack {
-                    Circle().fill(Color.black.opacity(0.28)).frame(width: 128, height: 128)
-                    Circle().stroke(Color.white.opacity(0.55), lineWidth: 2.5).frame(width: 128, height: 128)
-                    Circle().fill(Color.white.opacity(lActive ? 0.85 : 0.5)).frame(width: 54, height: 54)
+                    Circle().fill(Color.black.opacity(0.22)).frame(width: 128, height: 128)
+                    Circle().stroke(Color.white.opacity(0.4), lineWidth: 1).frame(width: 128, height: 128)
+                    Rectangle().fill(Color.white.opacity(0.18)).frame(width: 128, height: 1)
+                    Rectangle().fill(Color.white.opacity(0.18)).frame(width: 1, height: 128)
+                    Rectangle().fill(Color.white.opacity(lActive ? 0.8 : 0.4)).frame(width: 46, height: 46)
+                        .overlay(Rectangle().stroke(Color.white.opacity(0.7), lineWidth: 1))
                         .offset(x: lOff.width, y: lOff.height)
                     Image(systemName: "arrow.up").font(.system(size: 11, weight: .bold)).foregroundColor(.white.opacity(0.5)).offset(y: -52)
                 }
@@ -2412,7 +2418,8 @@ struct TacticalPlay: View {
                 .position(sb)
                 .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .local)
                     .onChanged { v in
-                        let dx = v.location.x - 105, dy = v.location.y - 105
+                        // origin = where the thumb first lands, so a touch alone never moves you
+                        let dx = v.location.x - v.startLocation.x, dy = v.location.y - v.startLocation.y
                         let d = max(0.001, hypot(dx, dy))
                         let k = min(1, d / 58)
                         lActive = true
@@ -2466,8 +2473,9 @@ struct TacticalPlay: View {
     /// big crosshair button: drag it to aim the gun any direction, tap it to aim down sights
     private var fireButton: some View {
         let on = engine.ads || engine.scoped
-        return Circle().fill(on ? TUI.accent.opacity(0.85) : Color.black.opacity(0.35)).frame(width: 92, height: 92)
-            .overlay(Circle().stroke(Color.white.opacity(0.7), lineWidth: 2.5))
+        return Rectangle().fill(on ? TUI.accent.opacity(0.85) : Color.black.opacity(0.4)).frame(width: 88, height: 88)
+            .overlay(Rectangle().stroke(Color.white.opacity(0.6), lineWidth: 1))
+            .tacBrackets(Color.white.opacity(0.9), len: 12)
             .overlay(Image(systemName: "scope").font(.system(size: 34, weight: .light)).foregroundColor(on ? .black : .white.opacity(0.95)))
             .contentShape(Rectangle().inset(by: -18))
             .gesture(DragGesture(minimumDistance: 0)
@@ -2488,10 +2496,11 @@ struct TacticalPlay: View {
 
     /// manual fire, sits higher than the ADS button so the thumb reaches it
     private var shootButton: some View {
-        Circle().fill(LS.orange.opacity(0.28)).frame(width: 84, height: 84)
-            .overlay(Circle().stroke(LS.orange, lineWidth: 3))
-            .overlay(Text("FIRE").font(.jk(15, .heavy)).foregroundColor(.white))
-            .contentShape(Circle())
+        Rectangle().fill(LS.orange.opacity(0.25)).frame(width: 80, height: 80)
+            .overlay(Rectangle().stroke(LS.orange, lineWidth: 1.5))
+            .tacBrackets(LS.orange, len: 12)
+            .overlay(Text("FIRE").font(.jk(15, .heavy)).tracking(1).foregroundColor(.white))
+            .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0).onChanged { _ in engine.firing = true }.onEnded { _ in engine.firing = false })
     }
 
@@ -2530,13 +2539,14 @@ struct TacticalPlay: View {
                         .opacity(alive ? 1 : 0.5)
                     if !alive { SF("xmark").font(.system(size: 13, weight: .black)).foregroundColor(.white) }
                 } else {
-                    Circle().fill(Color.white.opacity(0.12))
+                    Rectangle().fill(Color.white.opacity(0.12))
                 }
             }
             .frame(width: 30, height: 30)
-            .overlay(Circle().stroke(col.opacity(alive ? 1 : 0.4), lineWidth: 2))
-            Capsule().fill(Color.white.opacity(0.16)).frame(width: 30, height: 4)
-                .overlay(alignment: .leading) { Capsule().fill(barCol).frame(width: 30 * frac, height: 4) }
+            .clipShape(Rectangle())
+            .overlay(Rectangle().stroke(col.opacity(alive ? 1 : 0.4), lineWidth: 1.5))
+            Rectangle().fill(Color.white.opacity(0.16)).frame(width: 30, height: 3)
+                .overlay(alignment: .leading) { Rectangle().fill(barCol).frame(width: 30 * frac, height: 3) }
         }
     }
 
@@ -2559,8 +2569,8 @@ struct TacticalPlay: View {
     private func hotCell<C: View>(_ w: CGFloat, on: Bool, _ act: (() -> Void)? = nil, @ViewBuilder _ c: () -> C) -> some View {
         ZStack { c() }
             .frame(width: w, height: 50)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(on ? TUI.accent.opacity(0.22) : Color.black.opacity(0.5)))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(on ? TUI.accent : Color.white.opacity(0.22), lineWidth: on ? 1.6 : 1))
+            .background(Rectangle().fill(on ? TUI.accent.opacity(0.2) : Color(red: 0.05, green: 0.055, blue: 0.06).opacity(0.7)))
+            .overlay(Rectangle().stroke(on ? TUI.accent : Color.white.opacity(0.18), lineWidth: 1))
             .contentShape(Rectangle())
             .onTapGesture { act?() }
     }
@@ -2571,7 +2581,7 @@ struct TacticalPlay: View {
                 Text("RELOAD").font(.jk(big ? 11 : 9, .heavy)).foregroundColor(TUI.gold)
             } else {
                 HStack(alignment: .lastTextBaseline, spacing: 2) {
-                    Text("\(mag)").font(.system(size: big ? 17 : 12, weight: .heavy, design: .rounded)).foregroundColor(mag == 0 ? TUI.red : .white)
+                    Text("\(mag)").font(.system(size: big ? 17 : 12, weight: .heavy, design: .monospaced)).foregroundColor(mag == 0 ? TUI.red : .white)
                     if !pistol { Text("/\(spare)").font(.jk(big ? 10 : 8, .bold)).foregroundColor(.white.opacity(0.65)) }
                 }
             }
@@ -2595,7 +2605,7 @@ struct TacticalPlay: View {
                 SF(icon, "circle.fill").font(.system(size: 17, weight: .bold)).foregroundColor(.white.opacity(n == 0 ? 0.3 : 0.95))
                     .frame(width: 32, height: 50)
                 Text("\(n)").font(.jk(10, .heavy)).foregroundColor(.black).frame(minWidth: 15, minHeight: 15)
-                    .background(Circle().fill(n == 0 ? Color.white.opacity(0.4) : TUI.accent)).padding(2)
+                    .background(Rectangle().fill(n == 0 ? Color.white.opacity(0.4) : TUI.accent)).padding(2)
             }
         }
     }
@@ -2608,7 +2618,7 @@ struct TacticalPlay: View {
                 if e.gameMode == 0 {
                     HStack(spacing: 4) {
                         SF("dollarsign.circle.fill").font(.system(size: 12)).foregroundColor(TUI.green)
-                        Text("\(me.money)").font(.system(size: 14, weight: .heavy, design: .rounded)).foregroundColor(TUI.green)
+                        Text("\(me.money)").font(.system(size: 14, weight: .heavy, design: .monospaced)).foregroundColor(TUI.green)
                     }
                 }
                 Spacer(minLength: 0)
@@ -2620,7 +2630,7 @@ struct TacticalPlay: View {
                     SF("scope", "circle.fill").font(.system(size: 10, weight: .bold)).foregroundColor(TUI.gold).padding(.leading, 4)
                     Text("\(me.kills)").font(.jk(12, .heavy)).foregroundColor(.white)
                 }
-                .padding(.horizontal, 8).frame(height: 20).background(Capsule().fill(Color.black.opacity(0.42)))
+                .padding(.horizontal, 8).frame(height: 20).background(Rectangle().fill(Color.black.opacity(0.5)))
             }
             HStack(spacing: 3) {
                 hotCell(34, on: false) { KnifeShape().fill(Color.white.opacity(0.75)).frame(width: 24, height: 24) }
@@ -2631,18 +2641,18 @@ struct TacticalPlay: View {
                 nadeSlot("sun.max.fill", me.flashes) { e.wantFlash = true }
             }
             VStack(spacing: 3) {
-                Capsule().fill(Color.white.opacity(0.2)).frame(height: 5)
+                Rectangle().fill(Color.white.opacity(0.2)).frame(height: 4)
                     .overlay(alignment: .leading) {
                         GeometryReader { g in
-                            Capsule().fill(me.hp < 35 ? TUI.red : Color.white).frame(width: g.size.width * max(0, min(1, me.hp / 100)), height: 5)
+                            Rectangle().fill(me.hp < 35 ? TUI.red : Color.white).frame(width: g.size.width * max(0, min(1, me.hp / 100)), height: 4)
                         }
                     }
                 HStack(spacing: 3) {
                     ForEach(0..<3, id: \.self) { i in
                         let fill = max(0, min(1, me.armor / 100 * 3 - CGFloat(i)))
-                        Capsule().fill(Color.white.opacity(0.2)).frame(height: 4)
+                        Rectangle().fill(Color.white.opacity(0.2)).frame(height: 3)
                             .overlay(alignment: .leading) {
-                                GeometryReader { g in Capsule().fill(TUI.blue).frame(width: g.size.width * fill, height: 4) }
+                                GeometryReader { g in Rectangle().fill(TUI.blue).frame(width: g.size.width * fill, height: 3) }
                             }
                     }
                 }
@@ -2655,27 +2665,28 @@ struct TacticalPlay: View {
         SF(icon, "circle.fill").font(.system(size: d * 0.42, weight: .semibold))
             .foregroundColor(on ? .black : .white.opacity(dim ? 0.35 : 0.95))
             .frame(width: d, height: d)
-            .background(Circle().fill(on ? TUI.accent : Color.black.opacity(0.42)))
-            .overlay(Circle().stroke(on ? Color.white.opacity(0.9) : Color.white.opacity(0.4), lineWidth: 1.5))
+            .background(Rectangle().fill(on ? TUI.accent : Color(red: 0.05, green: 0.055, blue: 0.06).opacity(0.7)))
+            .overlay(Rectangle().stroke(on ? Color.white.opacity(0.9) : Color.white.opacity(0.35), lineWidth: 1))
+            .tacBrackets(on ? .black.opacity(0.6) : Color.white.opacity(0.7), len: 6)
     }
 
     private func nadeBubble(_ icon: String, _ n: Int) -> some View {
         ZStack(alignment: .bottomTrailing) {
             SF(icon, "circle.fill").font(.system(size: 19, weight: .bold)).foregroundColor(.white.opacity(n == 0 ? 0.3 : 0.95))
                 .frame(width: 48, height: 48)
-                .background(Circle().fill(Color.black.opacity(0.42)))
-                .overlay(Circle().stroke(Color.white.opacity(n == 0 ? 0.2 : 0.45), lineWidth: 1.5))
+                .background(Rectangle().fill(Color.black.opacity(0.5)))
+                .overlay(Rectangle().stroke(Color.white.opacity(n == 0 ? 0.2 : 0.4), lineWidth: 1))
             Text("\(n)").font(.jk(11, .heavy)).foregroundColor(.black).frame(minWidth: 17, minHeight: 17)
-                .background(Circle().fill(n == 0 ? Color.white.opacity(0.4) : TUI.accent))
+                .background(Rectangle().fill(n == 0 ? Color.white.opacity(0.4) : TUI.accent))
         }
     }
 
     private func statBar(_ icon: String, _ v: CGFloat, _ col: Color) -> some View {
         HStack(spacing: 7) {
             SF(icon, "circle.fill").font(.system(size: 13, weight: .black)).foregroundColor(col).frame(width: 16)
-            Capsule().fill(Color.white.opacity(0.18)).frame(width: 104, height: 6)
-                .overlay(alignment: .leading) { Capsule().fill(col).frame(width: 104 * max(0, min(1, v / 100)), height: 6) }
-            Text("\(Int(max(0, v)))").font(.system(size: 19, weight: .heavy, design: .rounded)).foregroundColor(.white).frame(width: 36, alignment: .trailing)
+            Rectangle().fill(Color.white.opacity(0.18)).frame(width: 104, height: 5)
+                .overlay(alignment: .leading) { Rectangle().fill(col).frame(width: 104 * max(0, min(1, v / 100)), height: 5) }
+            Text("\(Int(max(0, v)))").font(.system(size: 19, weight: .heavy, design: .monospaced)).foregroundColor(.white).frame(width: 36, alignment: .trailing)
         }
     }
 
@@ -2686,8 +2697,8 @@ struct TacticalPlay: View {
                 Text(label).font(.jk(10, .heavy))
             }
             .foregroundColor(on ? .black : .white.opacity(0.9)).frame(width: 64, height: 28)
-            .background(Capsule().fill(on ? TUI.accent : Color.black.opacity(0.45)))
-            .overlay(Capsule().stroke(Color.white.opacity(on ? 0.8 : 0.35), lineWidth: 1))
+            .background(Rectangle().fill(on ? TUI.accent : Color.black.opacity(0.5)))
+            .overlay(Rectangle().stroke(Color.white.opacity(on ? 0.8 : 0.3), lineWidth: 1))
         }
         .buttonStyle(TuiPress())
     }
@@ -2697,8 +2708,8 @@ struct TacticalPlay: View {
             SF(icon, "circle.fill").font(.system(size: 13, weight: .bold))
             Text(label).font(.jk(12, .heavy))
         }
-        .foregroundColor(.black).padding(.horizontal, 14).frame(height: 40).background(Capsule().fill(col))
-        .overlay(Capsule().stroke(Color.white.opacity(0.6), lineWidth: 1))
+        .foregroundColor(.black).padding(.horizontal, 14).frame(height: 38).background(Rectangle().fill(col))
+        .tacBrackets(.black.opacity(0.55), len: 7)
     }
 
     private var fpHud: some View {
@@ -2754,8 +2765,8 @@ struct TacticalPlay: View {
                                 SF("cart.fill").font(.system(size: 13, weight: .bold))
                                 Text("BUY  \(Int(e.buyT))").font(.jk(13, .heavy))
                             }
-                            .foregroundColor(.black).padding(.horizontal, 14).frame(height: 38).background(Capsule().fill(TUI.green))
-                            .overlay(Capsule().stroke(Color.white.opacity(0.6), lineWidth: 1))
+                            .foregroundColor(.black).padding(.horizontal, 14).frame(height: 38).background(Rectangle().fill(TUI.green))
+                            .tacBrackets(.black.opacity(0.55), len: 7)
                         }
                         .buttonStyle(TuiPress())
                         .position(x: 70, y: H * 0.55)
@@ -2810,15 +2821,15 @@ struct TacticalPlay: View {
         Button(action: act) {
             HStack(spacing: 12) {
                 SF(icon, "circle.fill").font(.system(size: 14, weight: .bold)).foregroundColor(on ? .black : .white.opacity(0.8))
-                    .frame(width: 34, height: 34).background(Circle().fill(on ? TUI.accent : Color.white.opacity(0.12)))
+                    .frame(width: 34, height: 34).background(Rectangle().fill(on ? TUI.accent : Color.white.opacity(0.12)))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title).font(.jk(14, .heavy)).foregroundColor(.white)
                     Text(sub).font(.jk(10, .semibold)).foregroundColor(.white.opacity(0.55))
                 }
                 Spacer()
                 ZStack(alignment: on ? .trailing : .leading) {
-                    Capsule().fill(on ? TUI.accent : Color.white.opacity(0.2)).frame(width: 46, height: 26)
-                    Circle().fill(Color.white).frame(width: 20, height: 20).padding(.horizontal, 3)
+                    Rectangle().fill(on ? TUI.accent : Color.white.opacity(0.2)).frame(width: 46, height: 24)
+                    Rectangle().fill(Color.white).frame(width: 18, height: 18).padding(.horizontal, 3)
                 }
             }
             .padding(.horizontal, 12).frame(width: 340, height: 56).tuiGlass(14, fill: 0.35)
@@ -2841,7 +2852,7 @@ struct TacticalPlay: View {
                         SF("play.fill").font(.system(size: 14, weight: .bold))
                         Text("RESUME").font(.jk(16, .heavy))
                     }
-                    .foregroundColor(.black).frame(width: 340, height: 50).background(Capsule().fill(TUI.accent))
+                    .foregroundColor(.black).frame(width: 340, height: 48).background(Rectangle().fill(TUI.accent)).tacBrackets(.black.opacity(0.5), len: 8)
                 }
                 .buttonStyle(TuiPress())
                 Button { engine.scores = [0, engine.target]; engine.over = true; engine.won = false; engine.paused = false } label: {
@@ -2849,8 +2860,8 @@ struct TacticalPlay: View {
                         SF("flag.fill").font(.system(size: 13, weight: .bold))
                         Text("FORFEIT MATCH").font(.jk(13, .heavy))
                     }
-                    .foregroundColor(TUI.red).frame(width: 340, height: 42).background(Capsule().fill(TUI.red.opacity(0.14)))
-                    .overlay(Capsule().stroke(TUI.red.opacity(0.4), lineWidth: 1))
+                    .foregroundColor(TUI.red).frame(width: 340, height: 42).background(Rectangle().fill(TUI.red.opacity(0.14)))
+                    .overlay(Rectangle().stroke(TUI.red.opacity(0.45), lineWidth: 1))
                 }
                 .buttonStyle(TuiPress())
             }
@@ -2861,8 +2872,8 @@ struct TacticalPlay: View {
     private func resultTile(_ icon: String, _ value: String, _ label: String, _ col: Color) -> some View {
         VStack(spacing: 4) {
             SF(icon, "circle.fill").font(.system(size: 18, weight: .bold)).foregroundColor(col)
-            Text(value).font(.system(size: 22, weight: .heavy, design: .rounded)).foregroundColor(.white)
-            Text(label).font(.jk(9, .heavy)).tracking(1).foregroundColor(.white.opacity(0.55))
+            Text(value).font(.system(size: 22, weight: .heavy, design: .monospaced)).foregroundColor(.white)
+            Text(label).font(.jk(9, .heavy)).tracking(1.5).foregroundColor(.white.opacity(0.55))
         }
         .frame(width: 108, height: 78).tuiGlass(14, fill: 0.35)
     }
@@ -2880,7 +2891,7 @@ struct TacticalPlay: View {
                 if e.gameMode == 6 {
                     VStack(spacing: 3) {
                         Text(e.won ? "LOOT SECURED  ·  \(e.raidBag.filter { $0.kind != "intel" }.count) ITEMS  ·  $\(e.bagValue)" : "BAG LOST  ·  \(e.raidBag.count) ITEMS")
-                            .font(.system(size: 20, weight: .heavy, design: .rounded)).foregroundColor(.white)
+                            .font(.system(size: 20, weight: .heavy, design: .monospaced)).foregroundColor(.white)
                         Text(e.contractDone ? (e.won ? "CONTRACT COMPLETE  +\(e.contractReward) GEMS" : "CONTRACT COMPLETE (NOT EXTRACTED)") : "CONTRACT: \(e.contractText)")
                             .font(.jk(12, .heavy)).foregroundColor(e.contractDone ? TUI.green : .white.opacity(0.6))
                     }
@@ -2890,7 +2901,7 @@ struct TacticalPlay: View {
                         Text(":").foregroundColor(.white.opacity(0.5))
                         Text("\(e.rivalScore)").foregroundColor(TUI.orange)
                     }
-                    .font(.system(size: 30, weight: .heavy, design: .rounded))
+                    .font(.system(size: 30, weight: .heavy, design: .monospaced))
                 }
                 HStack(spacing: 10) {
                     resultTile("scope", "\(e.kills)", "KILLS", TUI.gold)
@@ -2909,7 +2920,7 @@ struct TacticalPlay: View {
                         SF("checkmark.circle.fill").font(.system(size: 15, weight: .bold))
                         Text("COLLECT AND EXIT").font(.jk(15, .heavy))
                     }
-                    .foregroundColor(.black).frame(width: 300, height: 52).background(Capsule().fill(TUI.accent))
+                    .foregroundColor(.black).frame(width: 300, height: 50).background(Rectangle().fill(TUI.accent)).tacBrackets(.black.opacity(0.5), len: 8)
                 }
                 .buttonStyle(TuiPress())
                 .padding(.top, 4)
