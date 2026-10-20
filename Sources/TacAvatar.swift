@@ -92,7 +92,8 @@ enum TacAvatar {
         pick(&l.vestCol, r.int(vestCols.count))
         pick(&l.pack, r.chance(40) ? 1 + r.int(2) : 0)
         pick(&l.packCol, r.int(vestCols.count))
-        pick(&l.kit, r.chance(88) ? 1 + r.int(TacGear.kits.count) : 0)
+        pick(&l.kit, 1 + r.int(TacGear.kits.count))
+        if (l.kit ?? 0) < 1 { l.kit = 1 + r.int(TacGear.kits.count) }      // the old civilian outfit is retired
         if fresh {
             let hats = [1, 2, 6, 18, 19, 5, 10, 13, 20, 15]
             l.hat = r.chance(45) ? hats[r.int(hats.count)] : 0
@@ -123,7 +124,7 @@ enum TacAvatar {
         var s = TwStyle()
         s.key = key
         var l2 = l
-        if (l.kit ?? 0) > 0 { l2.mask = 0; l2.specs = 0; l2.hat = 0 }   // the kit draws those in 3D
+        l2.mask = 0; l2.specs = 0; l2.hat = 0                             // the operator draws those in 3D
         s.look = l2
         s.skin = ui(PortraitAvatar.skins[idx(l.skin, 8)])
         s.top = ui(PortraitAvatar.tops[idx(l.top, 12)])
@@ -286,6 +287,12 @@ struct AvatarSoldierPreview: UIViewRepresentable {
         context.coordinator.last = sig2
         let h = context.coordinator.holder
         h.childNodes.forEach { $0.removeFromParentNode() }
+        // Blender operator (modular GLB + arms + gun) when the kit and gun have models; otherwise the code-built soldier
+        if let op = TacOperator.node(style: style, gun: gid) {
+            op.position = MXVector3(0, -4, 0)
+            h.addChildNode(op)
+            return
+        }
         let sol = TwRig.soldier(team: UIColor(red: 0.3, green: 0.9, blue: 0.45, alpha: 1), style: style, rank: rank)
         for g in sol.variants { g.isHidden = true }
         let rifle = TwRig.gunIdx(gid)

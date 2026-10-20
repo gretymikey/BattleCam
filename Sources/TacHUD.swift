@@ -40,7 +40,7 @@ struct HudDot: View {
         .overlay(alignment: .bottomTrailing) {
             if showFloor, let p = p {
                 let f = TMap.floorOf(p.pos)
-                Text(THud.floorTag[f]).font(.system(size: 7, weight: .black, design: .rounded)).foregroundColor(.black)
+                Text(THud.floorTag[f]).font(.system(size: 7, weight: .black, design: .monospaced)).foregroundColor(.black)
                     .frame(width: 11, height: 11).background(Circle().fill(THud.floorCol[f]))
                     .offset(x: 2, y: 2)
             }
@@ -66,7 +66,7 @@ struct HudScore: View {
     let v: Int
     let col: Color
     var body: some View {
-        Text("\(v)").font(.system(size: 18, weight: .heavy, design: .rounded)).foregroundColor(.white).monospacedDigit()
+        Text("\(v)").font(.system(size: 18, weight: .heavy, design: .monospaced)).foregroundColor(.white).monospacedDigit()
             .frame(width: 32, height: 28)
             .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(col.opacity(0.32)))
             .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(col, lineWidth: 1.5))
@@ -104,7 +104,7 @@ struct HudScoreboard: View {
                 }
             }
             if e.bannerT > 0 {
-                Text(e.banner).font(.system(size: 32, weight: .heavy, design: .rounded)).tracking(1).foregroundColor(.white).multilineTextAlignment(.center)
+                Text(e.banner).font(.system(size: 32, weight: .heavy, design: .monospaced)).tracking(1).foregroundColor(.white).multilineTextAlignment(.center)
                     .shadow(color: .black.opacity(0.6), radius: 6)
                     .padding(.horizontal, 30).padding(.vertical, 4)
                     .padding(.top, 10).opacity(Double(min(1, e.bannerT)))
@@ -131,7 +131,7 @@ struct HudScoreboard: View {
         return HStack(spacing: 14) {
             HStack(spacing: 5) {
                 SF("person.3.fill").font(.system(size: 13, weight: .bold))
-                Text("\(e.brAlive)").font(.system(size: 20, weight: .heavy, design: .rounded)).monospacedDigit()
+                Text("\(e.brAlive)").font(.system(size: 20, weight: .heavy, design: .monospaced)).monospacedDigit()
                 Text("ALIVE").font(.jk(8, .heavy)).tracking(1).opacity(0.7)
             }
             Rectangle().fill(Color.white.opacity(0.2)).frame(width: 1, height: 22)
@@ -146,7 +146,7 @@ struct HudScoreboard: View {
             Rectangle().fill(Color.white.opacity(0.2)).frame(width: 1, height: 22)
             HStack(spacing: 5) {
                 SF("scope", "circle.fill").font(.system(size: 13, weight: .bold)).foregroundColor(TUI.gold)
-                Text("\(e.me.kills)").font(.system(size: 20, weight: .heavy, design: .rounded)).monospacedDigit()
+                Text("\(e.me.kills)").font(.system(size: 20, weight: .heavy, design: .monospaced)).monospacedDigit()
                 Text("KILLS").font(.jk(8, .heavy)).tracking(1).opacity(0.7)
             }
         }
@@ -267,7 +267,7 @@ struct HudDock: View {
                 Text("RELOAD").font(.jk(big ? 11 : 9, .heavy)).foregroundColor(TUI.gold)
             } else {
                 HStack(alignment: .lastTextBaseline, spacing: 2) {
-                    Text("\(mag)").font(.system(size: big ? 19 : 12, weight: .heavy, design: .rounded)).foregroundColor(mag == 0 ? TUI.red : .white).monospacedDigit()
+                    Text("\(mag)").font(.system(size: big ? 19 : 12, weight: .heavy, design: .monospaced)).foregroundColor(mag == 0 ? TUI.red : .white).monospacedDigit()
                     if !pistol { Text("/\(spare)").font(.jk(big ? 10 : 8, .bold)).foregroundColor(.white.opacity(0.6)) }
                 }
             }

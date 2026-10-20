@@ -49,9 +49,26 @@ Every bot has its own traits (aggression, patience, reflex, nerve) and picks its
 The latest changes have not been compiled on device. If CI fails, send the `errors.txt`.
 
 ## Operators
-Operators are modular: `Sources/TacGear.swift` defines 8 kits (Assault, Breacher, Recon, Marksman, Medic, Support, Spectre, Urban). Each kit sets uniform, rig, boots, gloves, helmet, face covering, eyewear, back items and body bulk (silhouette). Customize → Operators lets you swap face covering, helmet, chest rig, gloves and eyewear per slot, and recolour with Skins. First-person sleeves and gloves follow the selected kit (arms are exported as separate `glove`, `sleeve` and skin meshes). Bots each get a kit from their handle.
+Every operator is the Special Task Force character (Blender, posed per gun). `Sources/TacGear.swift` defines 8 STF presets (Assault, Breacher, Recon, Marksman, Medic, Support, Spectre, Urban). Customize → Operators lets you change face (7), headgear (bare / helmet / NVG), helmet colour (5), eyewear (5 lenses), uniform (7), vest (5 or none) and gloves per slot; picks are stored as overrides on top of the preset. In-match bots and third-person models still use the animated code-built soldier; STF is a static posed mesh shown in lobby, Customize and loadout previews. First-person sleeves and gloves follow the selected kit.
 
 ## Editors
 - Map builder: real 3D viewport (orbit / pan / pinch zoom, tap to paint), blueprint views, and a turntable asset viewer with size, height and behaviour for every tile.
 - Customize → Weapons → Camo & Attachment Lab: design camos (pattern + 3 colours) and attachments (stats under a power cap), save, equip, copy a share code, import a code.
 - Tap your name in the lobby for rank, league, W/L and recent matches.
+
+## Blender art
+`Resources/prop_*.glb` (13 modelled props) and `Resources/ic_*.png` (142 rendered asset icons) are built with Blender scripts (props_build.py / icons_build.py). The map builder shows them in its asset tree, preview and 3D view.
+
+## Lobby look and Blender operators
+
+- UI face is Avenir Next Condensed (ships with iOS); numerals in HUDs are monospaced. Palette is gunmetal with one restrained orange.
+- Lobby backdrop is a desaturated night scene with film grain, scanlines, vignette and a live bodycam timestamp (`BodycamBackdrop`, `BodycamGrain`, `BodycamOSD`). Panels use viewfinder corner brackets (`.tacBrackets()`).
+- Operators are Blender assets: `stf_head.glb` (head, helmet, NVG, lenses; shared), `stf_<gun>.glb` (body + vest with arms posed on that gun's real grips) and `ophold_stf.json` (where each gun sits in the hands). Textures are swapped at runtime from `stf_body_*`, `stf_gear_*`, `stf_helm_*`, `stf_head_*` jpgs. `TacOperator.node(style:gun:)` assembles them; every preview falls back to the code-built soldier if a piece is missing.
+- `op_<kit>.png` are the card portraits; `stfsw_*.png` are the swatches in Customize.
+- In-game HUD uses the same language: square gunmetal panels (`tuiGlass`), corner brackets, condensed type, monospaced numerals, no capsules.
+- Rebuild scripts: `blender-scripts/stf_*.py`, `pm_*.py` (python3 with bpy).
+
+## Credits
+
+- "Makarov PM" by Martin Trafas (https://sketchfab.com/TinoD2) is licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source: https://sketchfab.com/3d-models/makarov-pm-dbf03ce95c834cb7b07edba799dcd46a. Changes: cleaned up (centered, grounded, renamed), converted to GLB/FBX/OBJ/BLEND; re-oriented, split into slide / magazine / frame for animation, and exported to `Resources/gun_pm.glb`. Distributed by AiZity (https://aizity.com).
+- Special Task Force rigged character: supplied with no licence file. Confirm its licence before any public release.
