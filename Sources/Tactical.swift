@@ -312,8 +312,8 @@ final class TPlayer {
     var patience = CGFloat.random(in: 0.4...1.6)     // how long it keeps a post / plan
     var reflex = CGFloat.random(in: 0.75...1.35)     // personal reaction-time multiplier
     var nerve = CGFloat.random(in: 0.2...0.9)        // how readily it takes cover or backs off
-    var goal = CGPoint.zero
-    var goalT: CGFloat = 0
+    var aiGoal = CGPoint.zero
+    var aiGoalT: CGFloat = 0
     var commitAt: CGFloat = CGFloat.random(in: 10...55)
     var rank = 0   // 0 fighter, 1 staff, 2 admin
     var trophies = 0
@@ -362,6 +362,8 @@ final class TacticalEngine {
         var inK = -1
         var pens = 0
         var tf = -1
+        var h: CGFloat = 48        // height above the floor
+        var vh: CGFloat = 0        // vertical speed: pitch-aware shots climb or fall
     }
     struct Nade {
         var pos: CGPoint
@@ -667,7 +669,7 @@ final class TacticalEngine {
         TMap.resetDoors()
         TMap.resetDestruction()
         squadGoals = [:]
-        for b in players { b.goalT = 0; b.goal = .zero; b.commitAt = CGFloat.random(in: 10...55); b.path = []; b.pathT = 0 }
+        for b in players { b.aiGoalT = 0; b.aiGoal = .zero; b.commitAt = CGFloat.random(in: 10...55); b.path = []; b.pathT = 0 }
         roundT0 = time
         lookDelta = 0
         packs = TMap.packPos.map { Pack(pos: $0, taken: false) }
@@ -1319,9 +1321,14 @@ final class TacticalEngine {
         let tfl = shootTargetFloor(p)
         for _ in 0..<g.pellets {
             let a = p.aim + CGFloat.random(in: -sprd...sprd)
-            bullets.append(Bullet(pos: CGPoint(x: p.pos.x + cos(a) * muzzle, y: p.pos.y + sin(a) * muzzle),
-                                  vel: CGVector(dx: cos(a) * spd, dy: sin(a) * spd), dmg: g.dmg * (p.isPlayer ? am.dmgMul * gm.dmg : [0.85, 1, 1][diff]),
-                                  life: g.range * am.rangeMul / spd + 0.15, owner: p.id, team: p.team, tf: tfl))
+            // the player's shot follows the camera pitch as well as yaw; spread opens the cone vertically too
+            let pa: CGFloat = p.isPlayer ? pitch + CGFloat.random(in: -sprd...sprd) * 0.8 : 0
+            var bl = Bullet(pos: CGPoint(x: p.pos.x + cos(a) * muzzle, y: p.pos.y + sin(a) * muzzle),
+                            vel: CGVector(dx: cos(a) * spd, dy: sin(a) * spd), dmg: g.dmg * (p.isPlayer ? am.dmgMul * gm.dmg : [0.85, 1, 1][diff]),
+                            life: g.range * am.rangeMul / spd + 0.15, owner: p.id, team: p.team, tf: tfl)
+            bl.h = p.isPlayer ? (p.crouch ? CGFloat(TMap.eyeH) - 14 : CGFloat(TMap.eyeH)) : 48
+            bl.vh = spd * tan(pa)
+            bullets.append(bl)
         }
         p.mag -= 1
         p.fireCd = (1 / g.rate) * (p.isPlayer ? 1 : 1.15)
@@ -1400,8 +1407,11 @@ final class TacticalEngine {
             let old = b.pos
             b.pos.x += b.vel.dx * dt
             b.pos.y += b.vel.dy * dt
+            let hPrev = b.h
+            b.h += b.vh * dt
             b.life -= dt
             if b.life <= 0 { continue }
+            if b.h < 0 || b.h > CGFloat(TMap.wallH) { continue }      // into the floor or ceiling
             var dead = false
             var hitK = -1
             let bnow = b.pos
@@ -1425,7 +1435,9 @@ final class TacticalEngine {
                 }
             } else { b.inK = -1 }
             for v in players where v.alive && v.team != b.team {
-                if tPointSeg(v.pos, old, b.pos) < 15 {
+                let top: CGFloat = v.crouch ? 54 : 78
+                let hm = (hPrev + b.h) / 2
+                if tPointSeg(v.pos, old, b.pos) < 15 && hm >= 0 && hm <= top {
                     damage(v, b.dmg, by: b.owner)
                     dead = true
                     break
@@ -1575,7 +1587,7 @@ final class TacticalEngine {
                 p.path = []
                 p.pathT = 0
                 // each bot decides for itself whether the noise is worth checking
-                if CGFloat.random(in: 0...1) < p.aggro * 0.8 { p.goal = c; p.goalT = time + 6 + 6 * p.patience }
+                if CGFloat.random(in: 0...1) < p.aggro * 0.8 { p.aiGoal = c; p.aiGoalT = time + 6 + 6 * p.patience }
             }
         }
     }
@@ -1588,7 +1600,7 @@ final class TacticalEngine {
 
     /// each bot picks its own post: aggressive ones lean toward the objective, careful ones hold rooms away from friends
     private func squadGoalFor(_ p: TPlayer, bias: CGPoint?) -> CGPoint {
-        if p.goalT > time && p.goal != .zero { return p.goal }
+        if p.aiGoalT > time && p.aiGoal != .zero { return p.aiGoal }
         let mates = players.filter { $0.team == p.team && $0 !== p && $0.alive }
         var best = roomGoal(), bestScore = -CGFloat.greatestFiniteMagnitude
         for _ in 0..<7 {
@@ -1596,7 +1608,7 @@ final class TacticalEngine {
             if let bi = bias, CGFloat.random(in: 0...1) < p.aggro * 0.8 { c = bi }
             var sc = CGFloat.random(in: 0...40)
             for m in mates {
-                let mp = m.goalT > time ? m.goal : m.pos
+                let mp = m.aiGoalT > time ? m.aiGoal : m.pos
                 let d = tDist(c, mp)
                 if d < 190 { sc -= (190 - d) * 2.2 }
             }
@@ -1604,8 +1616,8 @@ final class TacticalEngine {
             sc -= tDist(c, p.pos) * (1 - p.aggro) * 0.02
             if sc > bestScore { bestScore = sc; best = c }
         }
-        p.goal = best
-        p.goalT = time + CGFloat.random(in: 7...20) * p.patience
+        p.aiGoal = best
+        p.aiGoalT = time + CGFloat.random(in: 7...20) * p.patience
         return best
     }
 

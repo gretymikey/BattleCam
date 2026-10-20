@@ -1576,8 +1576,8 @@ final class TacScene {
             if !e.replayOn, i < e.bullets.count, TMap.floorOf(e.bullets[i].pos) == focusFloor {
                 let b = e.bullets[i]
                 node.isHidden = false
-                node.position = MXVector3(Float(sx(b.pos)), 30 - liftF, Float(b.pos.y))
-                node.eulerAngles = MXVector3(0, Float(-atan2(b.vel.dy, b.vel.dx)), 0)
+                node.position = MXVector3(Float(sx(b.pos)), Float(b.h) - 18 - liftF, Float(b.pos.y))
+                node.eulerAngles = MXVector3(Float(atan2(b.vh, 1100)), Float(-atan2(b.vel.dy, b.vel.dx)), 0)
                 let c: UIColor = b.team == e.me.team ? UIColor(red: 0.7, green: 0.9, blue: 1, alpha: 1) : UIColor(red: 1, green: 0.55, blue: 0.35, alpha: 1)
                 node.geometry?.firstMaterial?.emission.contents = c
                 node.geometry?.firstMaterial?.diffuse.contents = c
