@@ -59,7 +59,7 @@ enum TacMarket {
             let price = Int(Double(value) * 2.0 * (0.6 + 0.4 * Double(dur) / 100))
             items.append(MarketListing(id: "g\(i)", kind: "gun", gun: item, ref: g.id, qty: 1, price: price, sold: false))
         }
-        let parts = TAtt.defs.filter { $0.slot != .camo }
+        let parts = TAtt.baseDefs.filter { $0.slot != .camo }
         for i in 0..<2 {
             let d = parts[pick(&rng, parts.count)]
             items.append(MarketListing(id: "p\(i)", kind: "part", gun: nil, ref: d.id, qty: 1, price: d.cost * 2, sold: false))

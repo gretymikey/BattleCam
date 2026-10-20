@@ -305,27 +305,35 @@ final class TwViewModel {
             root.eulerAngles = MXVector3(arc * -0.35, (swing > 0 ? sweep * 0.75 : 0), (swing > 0 ? sweep * -0.9 : 0))
             return
         }
-        // pulled back and in from the camera so both hands, the forearms and the whole weapon sit in frame
-        let vo = TwViewModel.viewOff[shown] ?? TwViewModel.viewOffDefault
-        var pos = SIMD3<Float>(bx + ix + dip * 1.2 + vo.0, by + iy - dip * 4.5 + vo.1, kick * 0.02 + recoil * 0.9 * recoilScale + vo.2)
-        var eul = SIMD3<Float>(kick * 0.004 + recoil * 0.035 * recoilScale - dip * 0.5, 0, -dip * 0.35)
-        // aim down sights: level the barrel and put the weapon's sight anchor on the camera axis
-        if adsK > 0.002, let gm = TwGunLib.gmeta[shown], let tp = gm["top"] as? [Double], let mz = gm["mz"] as? [Double], tp.count == 3, mz.count == 3 {
+        // the gun is rotated so its bore points straight ahead (rig space is yawed), then its sight anchor is placed
+        // low and to the right of the camera for the hip hold
+        var rot = simd_quatf(angle: 0, axis: SIMD3<Float>(0, 1, 0))
+        var anchor = SIMD3<Float>(0, 0, 0)
+        var alpha: Float = 0, phi: Float = 0
+        var haveMeta = false
+        if let gm = TwGunLib.gmeta[shown], let tp = gm["top"] as? [Double], let mz = gm["mz"] as? [Double], tp.count == 3, mz.count == 3 {
             let dx = Float(mz[0] - tp[0]), dy = Float(mz[1] - tp[1]), dz = Float(mz[2] - tp[2])
-            let phi = atan2f(dx, -dz)
-            let alpha = -atan2f(dy, hypotf(dx, dz))
-            let rot = simd_quatf(angle: alpha, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: phi, axis: SIMD3<Float>(0, 1, 0))
-            let s = root.scale.x
-            let anchor = rot.act(SIMD3<Float>(Float(tp[0]), Float(tp[1]), Float(tp[2])) * s)
+            phi = atan2f(dx, -dz)
+            alpha = -atan2f(dy, hypotf(dx, dz))
+            rot = simd_quatf(angle: alpha, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: phi, axis: SIMD3<Float>(0, 1, 0))
+            anchor = rot.act(SIMD3<Float>(Float(tp[0]), Float(tp[1]), Float(tp[2])) * root.scale.x)
+            haveMeta = true
+        }
+        let small = shown == "pistol" || shown == "eagle"
+        let hipAnchor: SIMD3<Float> = small ? SIMD3<Float>(0.7, -0.15, -3.6) : SIMD3<Float>(0.8, -0.4, -4.0)
+        let vo = TwViewModel.viewOff[shown] ?? TwViewModel.viewOffDefault
+        let hipBase: SIMD3<Float> = haveMeta ? hipAnchor - anchor : SIMD3<Float>(vo.0, vo.1, vo.2)
+        var pos = SIMD3<Float>(bx + ix + dip * 1.2, by + iy - dip * 4.5, kick * 0.02 + recoil * 0.9 * recoilScale) + hipBase
+        var eul = SIMD3<Float>(kick * 0.004 + recoil * 0.035 * recoilScale - dip * 0.5 + alpha, phi, -dip * 0.35)
+        // aim down sights: put the weapon's sight anchor on the camera axis
+        if adsK > 0.002 && haveMeta {
             let k = adsK * adsK * (3 - 2 * adsK)
             let target = SIMD3<Float>(0, -0.02, -4.2) - anchor
             let calm = 1 - 0.7 * k                       // sway and bob settle when the sights are up
-            let hip: SIMD3<Float> = pos * calm * (1 - k)
-            let sights: SIMD3<Float> = target * k
+            let sway = pos - hipBase
             let kickZ: Float = (kick * 0.02 + recoil * 0.9 * recoilScale) * k * 0.5
-            pos = hip + sights + SIMD3<Float>(0, 0, kickZ)
-            let ex: Float = eul.x * (1 - 0.5 * k) + alpha * k
-            eul = SIMD3<Float>(ex, phi * k, eul.z * (1 - k))
+            pos = hipBase * (1 - k) + target * k + sway * calm * (1 - k) + SIMD3<Float>(0, 0, kickZ)
+            eul = SIMD3<Float>(alpha + (eul.x - alpha) * (1 - 0.5 * k), phi, eul.z * (1 - k))
         }
         root.position = MXVector3(pos.x, pos.y, pos.z)
         root.eulerAngles = MXVector3(eul.x, eul.y, eul.z)

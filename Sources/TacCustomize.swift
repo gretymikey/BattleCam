@@ -277,6 +277,16 @@ struct CustomizeHome: View {
             }
             head("CAMO")
             camoGrid()
+            Button { act(.screen(14)) } label: {
+                HStack(spacing: 6) {
+                    SF("paintpalette.fill").font(.system(size: 13, weight: .bold))
+                    Text("CAMO & ATTACHMENT LAB").font(.jk(11, .heavy))
+                    Spacer(minLength: 0)
+                    Text("MAKE · SAVE · SHARE").font(.jk(8, .semibold)).opacity(0.7)
+                }
+                .foregroundColor(.black).padding(.horizontal, 10).frame(height: 34).background(LS.orange)
+            }
+            .buttonStyle(TuiPress())
         default:
             head("CHARMS")
             Text("Charms and kill effects live in the Store.").font(.jk(10, .medium)).foregroundColor(.white.opacity(0.7))

@@ -50,6 +50,14 @@ struct MapEditorView: View {
     @State private var shareText = ""
     @State private var showShare = false
     @State private var note = "Ready"
+    @State private var viewMode = 0                   // 0 real 3D, 1 blueprint colour, 2 blueprint wire
+    @State private var pitch: Double = 52
+    @State private var dist: Double = 2500
+    @State private var baseDist: Double = 2500
+    @State private var target = CGPoint(x: 1350, y: 750)
+    @State private var assetZoom: Double = 1
+    @State private var baseAssetZoom: Double = 1
+    @State private var h3 = Map3DHandle()
 
     private var mapIdx: Int? { maps.firstIndex(where: { $0.id == mapId }) }
     private var mapName: String { mapIdx.map { maps[$0].name } ?? "MAP" }
@@ -233,10 +241,22 @@ struct MapEditorView: View {
 
     private func frameAll() {
         zoom = 1; baseZoom = 1; pan = .zero
+        pitch = 52; dist = 2500; baseDist = 2500
+        target = CGPoint(x: CGFloat(mw) * Map3DBuilder.ts / 2, y: CGFloat(mh) * Map3DBuilder.ts / 2)
+    }
+
+    private func zoom3D(_ f: Double) {
+        dist = max(250, min(5200, dist * f)); baseDist = dist
+        zoom = max(0.4, min(5, zoom / CGFloat(f))); baseZoom = zoom
     }
 
     private func frameSel() {
         guard let s = sel else { frameAll(); return }
+        if viewMode == 0 {
+            target = CGPoint(x: (CGFloat(s % mw) + 0.5) * Map3DBuilder.ts, y: (CGFloat(s / mw) + 0.5) * Map3DBuilder.ts)
+            dist = 650; baseDist = 650
+            return
+        }
         let save = pan
         pan = .zero
         let p = proj(CGFloat(s % mw) + 0.5, CGFloat(s / mw) + 0.5, 0, vp)
@@ -592,7 +612,9 @@ struct MapEditorView: View {
                 Spacer(minLength: 0)
             }
             HStack(spacing: 4) {
-                btn("View: \(wire ? "Wire" : "Color")") { wire.toggle() }
+                btn("View: \(["3D", "Color", "Wire"][viewMode])") { viewMode = (viewMode + 1) % 3; wire = viewMode == 2 }
+                btn("Zoom +", w: 52) { zoom3D(0.78) }
+                btn("Zoom −", w: 52) { zoom3D(1.28) }
                 btn("Numbers: \(numbers ? "On" : "Off")") { numbers.toggle() }
                 Text("\(objects.count) objects · \(mw)×\(mh) tiles").font(.system(size: 9)).foregroundColor(ME.dim)
                 Spacer(minLength: 0)
@@ -605,19 +627,41 @@ struct MapEditorView: View {
             ZStack(alignment: .topLeading) {
                 Color.black
                 if vpTab == 0 {
-                    Canvas { ctx, sz in drawLayout(ctx, sz) }
-                        .gesture(dragGesture(CGSize(width: w - 6, height: vh)))
-                        .simultaneousGesture(MagnificationGesture()
-                            .onChanged { v in zoom = max(0.4, min(5, baseZoom * v)) }
-                            .onEnded { _ in baseZoom = zoom })
+                    if viewMode == 0 {
+                        MapView3D(cells: cells, sel: sel, yaw: yaw, pitch: pitch, dist: dist, target: target, handle: h3)
+                            .overlay(Color.clear.contentShape(Rectangle())
+                                .gesture(drag3D())
+                                .simultaneousGesture(MagnificationGesture()
+                                    .onChanged { v in dist = max(250, min(5200, baseDist / Double(v))) }
+                                    .onEnded { _ in baseDist = dist }))
+                    } else {
+                        Canvas { ctx, sz in drawLayout(ctx, sz) }
+                            .gesture(dragGesture(CGSize(width: w - 6, height: vh)))
+                            .simultaneousGesture(MagnificationGesture()
+                                .onChanged { v in zoom = max(0.4, min(5, baseZoom * v)) }
+                                .onEnded { _ in baseZoom = zoom })
+                    }
                 } else {
-                    Canvas { ctx, sz in drawPreview(ctx, sz) }
-                        .gesture(DragGesture(minimumDistance: 0).onChanged { g in
-                            yaw += Double(g.translation.width - lastDrag.width) * 0.6
-                            lastDrag = g.translation
-                        }.onEnded { _ in lastDrag = .zero })
+                    AssetView3D(tileId: Int(tile), yaw: yaw, zoom: assetZoom)
+                        .overlay(Color.clear.contentShape(Rectangle())
+                            .gesture(DragGesture(minimumDistance: 0).onChanged { g in
+                                yaw += Double(g.translation.width - lastDrag.width) * 0.6
+                                lastDrag = g.translation
+                            }.onEnded { _ in lastDrag = .zero })
+                            .simultaneousGesture(MagnificationGesture()
+                                .onChanged { v in assetZoom = max(0.5, min(3.2, baseAssetZoom * Double(v))) }
+                                .onEnded { _ in baseAssetZoom = assetZoom }))
+                        .overlay(alignment: .topTrailing) { assetDetail().padding(6) }
+                        .overlay(alignment: .bottomLeading) {
+                            HStack(spacing: 4) {
+                                btn("Zoom +", w: 52) { assetZoom = min(3.2, assetZoom * 1.25); baseAssetZoom = assetZoom }
+                                btn("Zoom −", w: 52) { assetZoom = max(0.5, assetZoom / 1.25); baseAssetZoom = assetZoom }
+                                btn("Place it", red: true, w: 60) { addToLayout() }
+                            }
+                            .padding(6)
+                        }
                 }
-                Text(vpTab == 0 ? "\(mapName.uppercased()) · \(dirty ? "UNSAVED" : "SAVED IN APP") · PLAYS OFFLINE VS BOTS" : "ASSET PREVIEW · drag to turn")
+                Text(vpTab == 0 ? "\(mapName.uppercased()) · \(dirty ? "UNSAVED" : "SAVED IN APP") · PLAYS OFFLINE VS BOTS" : "ASSET PREVIEW · drag to turn · pinch to zoom")
                     .font(.system(size: 8)).foregroundColor(Color(white: 0.75)).padding(4).allowsHitTesting(false)
             }
             .frame(width: w - 6, height: vh)
@@ -628,6 +672,83 @@ struct MapEditorView: View {
                 .font(.system(size: 8)).foregroundColor(ME.dim).lineLimit(2).frame(height: 24, alignment: .topLeading)
         }
         .frame(width: w, height: h, alignment: .topLeading)
+    }
+
+    /// drag handling for the real 3D view (picking goes through the projected ground grid)
+    private func drag3D() -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { g in
+                switch tool {
+                case 0, 4:
+                    if !stroke { stroke = true; pushUndo() }
+                    if let i = h3.cell(at: g.location), cells.count == mw * mh {
+                        let v: UInt8 = tool == 4 ? 0 : tile
+                        if cells[i] != v { cells[i] = v; dirty = true }
+                    }
+                case 1:
+                    if let i = h3.cell(at: g.location) { sel = i }
+                case 2:
+                    yaw += Double(g.translation.width - lastDrag.width) * 0.45
+                    pitch = max(14, min(86, pitch + Double(g.translation.height - lastDrag.height) * 0.3))
+                    lastDrag = g.translation
+                default:
+                    let a = yaw * .pi / 180
+                    let k = dist * 0.0011
+                    let dx = Double(g.translation.width - lastDrag.width) * k, dy = Double(g.translation.height - lastDrag.height) * k
+                    target = CGPoint(x: target.x - CGFloat(cos(a) * dx) + CGFloat(-sin(a) * dy), y: target.y + CGFloat(sin(a) * dx) + CGFloat(-cos(a) * dy))
+                    lastDrag = g.translation
+                }
+            }
+            .onEnded { _ in
+                stroke = false
+                lastDrag = .zero
+                if dirty { commit() }
+            }
+    }
+
+    private func detailLine(_ k: String, _ v: String) -> some View {
+        HStack(spacing: 6) {
+            Text(k).font(.system(size: 8, weight: .semibold)).foregroundColor(ME.dim).frame(width: 52, alignment: .leading)
+            Text(v).font(.system(size: 9, weight: .semibold)).foregroundColor(.white)
+        }
+    }
+
+    /// size, height, behaviour of the selected asset
+    private func assetDetail() -> some View {
+        let d = def(Int(tile))
+        let hcm = Int(Map3DBuilder.heightCm(d))
+        var fw = 75, fd = 75
+        if d.k == .prop || d.k == .edge, let f = d.fr.first {
+            fw = Int(f.width * 75); fd = Int(f.height * 75)
+        }
+        let kind: String
+        let behaviour: String
+        switch d.k {
+        case .floor: kind = "Floor · \(d.name)"; behaviour = "Walkable"
+        case .water: kind = "Liquid"; behaviour = TWorkshop.liquidMats.contains(d.mat) ? "Blocks movement, bullets pass" : "Walkable"
+        case .bridge: kind = "Bridge"; behaviour = "Walkable over water"
+        case .wall: kind = "Solid wall"; behaviour = "Blocks movement, sight and bullets"
+        case .edge: kind = "Wall piece"; behaviour = "Blocks movement, sight and bullets"
+        case .prop: kind = "Cover prop"; behaviour = d.pk == .tree || d.pk == .shelf ? "Solid, blocks sight" : "Solid cover"
+        case .spawn: kind = "Spawn marker"; behaviour = "Player / bot start"
+        case .spawnA: kind = "Attack spawn"; behaviour = "Attackers start here"
+        case .spawnD: kind = "Defend spawn"; behaviour = "Defenders start here"
+        case .loot: kind = "Loot spot"; behaviour = "Pickup: \(d.tag.isEmpty ? "random" : d.tag)"
+        case .site: kind = "Bomb site \(d.tag)"; behaviour = "Plant / defuse zone"
+        }
+        return VStack(alignment: .leading, spacing: 3) {
+            Text(d.name.uppercased()).font(.system(size: 11, weight: .heavy)).foregroundColor(.white)
+            Text(TWorkshop.catNames[min(d.cat, TWorkshop.catNames.count - 1)]).font(.system(size: 8)).foregroundColor(ME.dim)
+            detailLine("TYPE", kind)
+            detailLine("FOOTPRINT", "\(fw) × \(fd) cm")
+            detailLine("HEIGHT", hcm == 0 ? "flat" : "\(hcm) cm")
+            detailLine("BEHAVIOUR", behaviour)
+            detailLine("ID", "#\(tile)")
+        }
+        .padding(7)
+        .background(Color.black.opacity(0.72))
+        .overlay(Rectangle().stroke(ME.line, lineWidth: 1))
+        .allowsHitTesting(false)
     }
 
     private func dragGesture(_ sz: CGSize) -> some Gesture {

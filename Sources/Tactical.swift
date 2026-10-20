@@ -12,6 +12,17 @@ struct TacData: Codable, Hashable {
     var prestige: Int? = nil
     var xpExtra: Int? = nil
     var xpBase: Int? = nil
+    var recent: [TacMatch]? = nil
+}
+
+/// one finished match for the profile screen
+struct TacMatch: Codable, Hashable {
+    var won: Bool
+    var kills: Int
+    var map: Int
+    var mode: Int
+    var delta: Int
+    var date: Double
 }
 
 // MARK: - Geometry
@@ -2204,6 +2215,8 @@ struct TacticalPlay: View {
     @State private var engine = TacticalEngine()
     @State private var lStart: CGPoint? = nil
     @State private var lActive = false
+    @State private var crossLast: CGSize = .zero
+    @State private var crossMax: CGFloat = 0
     @State private var lOff: CGSize = .zero
     @State private var lKnob: CGPoint = .zero
     @State private var rStart: CGPoint? = nil
@@ -2405,7 +2418,7 @@ struct TacticalPlay: View {
                         lActive = true
                         lOff = CGSize(width: dx / d * k * 58, height: dy / d * k * 58)
                         var mv = d > 6 ? CGVector(dx: dx / d * k, dy: dy / d * k) : .zero
-                        if let b = bridge, b.yaw != 0 {
+                        if !fp, let b = bridge, b.yaw != 0 {
                             let c = cos(b.yaw), sn = sin(b.yaw)
                             mv = CGVector(dx: c * mv.dx + sn * mv.dy, dy: -sn * mv.dx + c * mv.dy)
                         }
@@ -2431,6 +2444,8 @@ struct TacticalPlay: View {
                 }
                 if let s = rStart { stick(s, rKnob, Color.red) }
                 if fp {
+                    // fire sits on the left, above the move stick
+                    shootButton.position(x: 84, y: g.size.height - 262)
                     VStack {
                         Spacer()
                         HStack {
@@ -2442,16 +2457,41 @@ struct TacticalPlay: View {
             }
             .frame(width: g.size.width, height: g.size.height)
             .simultaneousGesture(RotationGesture()
-                .onChanged { a in bridge?.yaw = baseYaw + CGFloat(a.radians) }
+                .onChanged { a in if !fp { bridge?.yaw = baseYaw + CGFloat(a.radians) } }
                 .onEnded { _ in baseYaw = bridge?.yaw ?? 0 })
         }
         .ignoresSafeArea()
     }
 
+    /// big crosshair button: drag it to aim the gun any direction, tap it to aim down sights
     private var fireButton: some View {
-        Circle().fill(Color.black.opacity(0.35)).frame(width: 92, height: 92)
+        let on = engine.ads || engine.scoped
+        return Circle().fill(on ? TUI.accent.opacity(0.85) : Color.black.opacity(0.35)).frame(width: 92, height: 92)
             .overlay(Circle().stroke(Color.white.opacity(0.7), lineWidth: 2.5))
-            .overlay(Image(systemName: "scope").font(.system(size: 34, weight: .light)).foregroundColor(.white.opacity(0.95)))
+            .overlay(Image(systemName: "scope").font(.system(size: 34, weight: .light)).foregroundColor(on ? .black : .white.opacity(0.95)))
+            .contentShape(Rectangle().inset(by: -18))
+            .gesture(DragGesture(minimumDistance: 0)
+                .onChanged { v in
+                    let sens: CGFloat = engine.scoped ? 0.0035 : (engine.ads ? 0.0055 : 0.008)
+                    engine.lookDelta += (v.translation.width - crossLast.width) * sens
+                    engine.pitch = max(-0.75, min(0.75, engine.pitch - (v.translation.height - crossLast.height) * sens * 0.8))
+                    crossLast = v.translation
+                    crossMax = max(crossMax, hypot(v.translation.width, v.translation.height))
+                }
+                .onEnded { _ in
+                    if crossMax < 10 {
+                        if TWeapons.cls(engine.me.gun) == "sniper" { engine.scoped.toggle(); engine.ads = false } else { engine.ads.toggle(); engine.scoped = false }
+                    }
+                    crossLast = .zero; crossMax = 0
+                })
+    }
+
+    /// manual fire, sits higher than the ADS button so the thumb reaches it
+    private var shootButton: some View {
+        Circle().fill(LS.orange.opacity(0.28)).frame(width: 84, height: 84)
+            .overlay(Circle().stroke(LS.orange, lineWidth: 3))
+            .overlay(Text("FIRE").font(.jk(15, .heavy)).foregroundColor(.white))
+            .contentShape(Circle())
             .gesture(DragGesture(minimumDistance: 0).onChanged { _ in engine.firing = true }.onEnded { _ in engine.firing = false })
     }
 
@@ -2695,17 +2735,6 @@ struct TacticalPlay: View {
                             .buttonStyle(TuiPress()).position(x: W - 36, y: H - 44)
                         Button { e.wantReload = true } label: { vbtn("arrow.triangle.2.circlepath", 48) }
                             .buttonStyle(TuiPress()).position(x: W - 214, y: H - 40)
-                        Button {
-                            if TWeapons.cls(e.me.gun) == "sniper" { e.scoped.toggle(); e.ads = false } else { e.ads.toggle(); e.scoped = false }
-                        } label: {
-                            let on = e.ads || e.scoped
-                            Text("ADS").font(.jk(14, .heavy))
-                                .foregroundColor(on ? .black : .white)
-                                .frame(width: 62, height: 62)
-                                .background(Circle().fill(on ? TUI.accent : Color.black.opacity(0.42)))
-                                .overlay(Circle().stroke(Color.white.opacity(on ? 0.85 : 0.5), lineWidth: 2))
-                        }
-                        .buttonStyle(TuiPress()).position(x: W - 214, y: H - 118)
                         BodycamAmmo(e: e).position(x: W / 2, y: H - 30)
                     } else {
                         Button { e.fast.toggle() } label: {
@@ -2873,7 +2902,7 @@ struct TacticalPlay: View {
                     collected = true
                     var extra = 0
                     if e.gameMode == 6 { extra = e.raidSold }
-                    game.tacticalFinish(won: e.won, kills: e.kills, gems: gems + extra)
+                    game.tacticalFinish(won: e.won, kills: e.kills, gems: gems + extra, map: e.mapPick, mode: e.gameMode)
                     dismiss()
                 } label: {
                     HStack(spacing: 8) {
@@ -2902,11 +2931,14 @@ extension Game {
         _ = TacRank.totalXP(d)
     }
 
-    func tacticalFinish(won: Bool, kills: Int, gems: Int) {
+    func tacticalFinish(won: Bool, kills: Int, gems: Int, map: Int = 0, mode: Int = 0) {
         var st = s
         var d = st.ex.tac ?? TacData()
         if won { d.wins += 1; d.rating += 10 } else { d.losses += 1; d.rating = max(0, d.rating - 5) }
         d.kills += kills
+        var rec = d.recent ?? []
+        rec.insert(TacMatch(won: won, kills: kills, map: map, mode: mode, delta: won ? 10 : -5, date: Date().timeIntervalSince1970), at: 0)
+        d.recent = Array(rec.prefix(20))
         let baseXP = 40 + kills * 10 + (won ? 60 : 0)
         d.xpExtra = (d.xpExtra ?? 0) + baseXP * (TacRank.mult(d.prestige ?? 0) - 1)
         var x = d.sx ?? TacSeasonData()

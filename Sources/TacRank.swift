@@ -401,6 +401,77 @@ struct TacRankSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var draft = ""
 
+    private func stat(_ label: String, _ value: String, _ col: Color = .white) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.jk(20, .heavy)).foregroundColor(col).lineLimit(1).minimumScaleFactor(0.6)
+            Text(label).font(.jk(9, .heavy)).tracking(1).foregroundColor(.white.opacity(0.55))
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 10)
+        .background(Color.white.opacity(0.07))
+        .overlay(Rectangle().stroke(Color.white.opacity(0.15), lineWidth: 1))
+    }
+
+    /// rank, league, record and the last matches
+    @ViewBuilder private func profileCard(_ t: TacData) -> some View {
+        let games = t.wins + t.losses
+        let pct = games == 0 ? 0 : Int((Double(t.wins) / Double(games) * 100).rounded())
+        let li = TacLeague.index(t.rating)
+        let nextLeague: (String, Int)? = li + 1 < TacLeague.all.count ? (TacLeague.all[li + 1].0, TacLeague.all[li + 1].1) : nil
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                ZStack {
+                    LeagueShield().fill(TacLeague.color(t.rating)).frame(width: 44, height: 52)
+                    LeagueShield().stroke(Color.black.opacity(0.6), lineWidth: 1.5).frame(width: 44, height: 52)
+                    Text("\(li + 1)").font(.jk(16, .heavy)).foregroundColor(.black.opacity(0.8))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("LEAGUE").font(.jk(9, .heavy)).tracking(1).foregroundColor(.white.opacity(0.55))
+                    Text(TacLeague.name(t.rating)).font(.jk(20, .heavy)).foregroundColor(TacLeague.color(t.rating))
+                    Text("\(t.rating) RATING" + (nextLeague.map { "  ·  \($0.1 - t.rating) TO \($0.0)" } ?? "  ·  TOP LEAGUE"))
+                        .font(.jk(11, .bold)).foregroundColor(.white.opacity(0.65))
+                }
+            }
+            HStack(spacing: 6) {
+                stat("WINS", "\(t.wins)", TUI.green)
+                stat("LOSSES", "\(t.losses)", TUI.red)
+                stat("WIN %", "\(pct)%")
+                stat("KILLS", "\(t.kills)")
+                stat("K / MATCH", games == 0 ? "0.0" : String(format: "%.1f", Double(t.kills) / Double(games)))
+            }
+            Text("RECENT MATCHES").font(.jk(11, .heavy)).tracking(1).foregroundColor(.white.opacity(0.7)).padding(.top, 2)
+            if (t.recent ?? []).isEmpty {
+                Text("No matches yet. Finish a game and it shows up here.").font(.jk(11, .medium)).foregroundColor(.white.opacity(0.5))
+            } else {
+                VStack(spacing: 4) {
+                    ForEach(Array((t.recent ?? []).prefix(10).enumerated()), id: \.offset) { _, m in
+                        HStack(spacing: 10) {
+                            Text(m.won ? "WIN" : "LOSS").font(.jk(11, .heavy)).foregroundColor(.black)
+                                .frame(width: 46, height: 22).background(Rectangle().fill(m.won ? TUI.green : TUI.red))
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text((m.map >= 0 && m.map < TMap.mapNames.count ? TMap.mapNames[m.map] : "MAP").uppercased()).font(.jk(12, .heavy)).foregroundColor(.white)
+                                Text(((m.mode >= 0 && m.mode < TWeapons.modeNames.count) ? TWeapons.modeNames[m.mode] : "MODE").uppercased() + "  ·  " + Self.ago(m.date))
+                                    .font(.jk(9, .semibold)).foregroundColor(.white.opacity(0.55))
+                            }
+                            Spacer(minLength: 0)
+                            Text("\(m.kills) K").font(.jk(12, .heavy)).foregroundColor(.white.opacity(0.85))
+                            Text(m.delta >= 0 ? "+\(m.delta)" : "\(m.delta)").font(.jk(12, .heavy)).foregroundColor(m.delta >= 0 ? TUI.green : TUI.red).frame(width: 36, alignment: .trailing)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background(Color.white.opacity(0.06))
+                        .overlay(Rectangle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                    }
+                }
+            }
+        }
+    }
+
+    private static func ago(_ t: Double) -> String {
+        let s = max(0, Date().timeIntervalSince1970 - t)
+        if s < 3600 { return "\(Int(s / 60))M AGO" }
+        if s < 86400 { return "\(Int(s / 3600))H AGO" }
+        return "\(Int(s / 86400))D AGO"
+    }
+
     var body: some View {
         let xp = TacRank.totalXP(t)
         let cur = TacRank.index(xp)
@@ -430,6 +501,7 @@ struct TacRankSheet: View {
                         }
                     }
                 }
+                profileCard(t)
                 if cur >= TacRank.ranks.count - 1, (t.prestige ?? 0) < TacRank.maxPrestige, let go = onPrestige {
                     let np = (t.prestige ?? 0) + 1
                     Button { go(); dismiss() } label: {

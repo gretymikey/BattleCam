@@ -16,6 +16,9 @@ enum TAttPattern {
 
     private static func ui(_ c: (CGFloat, CGFloat, CGFloat)) -> UIColor { UIColor(red: c.0, green: c.1, blue: c.2, alpha: 1) }
 
+    /// drops cached images of a throw-away (lab draft) camo
+    static func forget(_ id: String) { cache[id] = nil; cache[id + "#g"] = nil; cache[id + "#gd"] = nil }
+
     /// camo tiled across the 512px atlas of a Blender-built gun so every UV island shows the pattern
     static func gunSkin(_ d: TAttDef, dark: Bool = false) -> UIImage? {
         let key = d.id + (dark ? "#gd" : "#g")
@@ -125,7 +128,7 @@ final class TAttNodes {
     func apply(_ gun: String) {
         for (id, ns) in byId {
             guard let slot = TAtt.def(id)?.slot else { continue }
-            let on = TAtt.eq(gun, slot) == id
+            let on = TAtt.eq(gun, slot).map { TAtt.visualId($0) } == id
             for n in ns { n.isHidden = !on }
         }
     }

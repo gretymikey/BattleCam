@@ -50,3 +50,8 @@ The latest changes have not been compiled on device. If CI fails, send the `erro
 
 ## Operators
 Operators are modular: `Sources/TacGear.swift` defines 8 kits (Assault, Breacher, Recon, Marksman, Medic, Support, Spectre, Urban). Each kit sets uniform, rig, boots, gloves, helmet, face covering, eyewear, back items and body bulk (silhouette). Customize → Operators lets you swap face covering, helmet, chest rig, gloves and eyewear per slot, and recolour with Skins. First-person sleeves and gloves follow the selected kit (arms are exported as separate `glove`, `sleeve` and skin meshes). Bots each get a kit from their handle.
+
+## Editors
+- Map builder: real 3D viewport (orbit / pan / pinch zoom, tap to paint), blueprint views, and a turntable asset viewer with size, height and behaviour for every tile.
+- Customize → Weapons → Camo & Attachment Lab: design camos (pattern + 3 colours) and attachments (stats under a power cap), save, equip, copy a share code, import a code.
+- Tap your name in the lobby for rank, league, W/L and recent matches.

@@ -37,7 +37,12 @@ struct TAttMods {
 }
 
 enum TAtt {
-    static let defs: [TAttDef] = [
+    /// built-in parts and camos plus everything the player made in the lab
+    static var defs: [TAttDef] { baseDefs + TAttCustom.camoDefs + TAttCustom.attDefs }
+
+    static func visualId(_ id: String) -> String { TAttCustom.att(id)?.base ?? id }
+
+    static let baseDefs: [TAttDef] = [
         TAttDef(id: "mag_ext", slot: .mag, name: "Extended Mag", desc: "+50% magazine, slightly slower reload", cost: 60),
         TAttDef(id: "mag_drum", slot: .mag, name: "Drum Mag", desc: "+100% magazine, much slower reload", cost: 150),
         TAttDef(id: "sil", slot: .muzzle, name: "Silencer", desc: "Quiet shots bots can't hear, no muzzle flash, -8% damage", cost: 100),
@@ -109,6 +114,13 @@ enum TAtt {
         var m = TAttMods()
         for s in TAttSlot.allCases {
             guard let id = eq(gun, s) else { continue }
+            if let ca = TAttCustom.att(id) {
+                m.magMul *= CGFloat(ca.mag); m.reloadMul *= CGFloat(ca.reload); m.recoilMul *= CGFloat(ca.recoil)
+                m.dmgMul *= CGFloat(ca.dmg); m.rangeMul *= CGFloat(ca.range)
+                if ca.silenced { m.silenced = true }
+                if s == .optic { m.zoomFOV = CGFloat(ca.zoom); m.scopeMul = max(0.4, CGFloat(ca.zoom) / 26) }
+                continue
+            }
             switch id {
             case "mag_ext": m.magMul = 1.5; m.reloadMul *= 1.08
             case "mag_drum": m.magMul = 2; m.reloadMul *= 1.25
